@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -9,7 +10,8 @@ import ai_engine
 from database import get_conn, init_db
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
+RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+FRONTEND_DIR = RESOURCE_DIR / "frontend"
 TEACHER_PASSWORD = "teacher1234"
 
 app = FastAPI(title="AI 탐구메이트")
