@@ -131,9 +131,15 @@ function renderFeedbackHistory(feedbacks = []) {
 
 async function loadMyProjects() {
   const res = await (await fetch(`/api/student/${currentStudent.id}/projects`)).json();
-  if (!res.items.length) return;
-  document.getElementById('myProjectsBox').classList.remove('hidden');
-  document.getElementById('myProjects').innerHTML = res.items.map(p => `
+  const box = document.getElementById('myProjectsBox');
+  const list = document.getElementById('myProjects');
+  if (!res.items.length) {
+    box.classList.add('hidden');
+    list.innerHTML = '';
+    return;
+  }
+  box.classList.remove('hidden');
+  list.innerHTML = res.items.map(p => `
     <div class="topic">
       <h3>${esc(p.topic)}</h3>
       <p class="muted">진행률 ${p.progress}% · 적합도 ${p.fit_score}점</p>
@@ -144,6 +150,7 @@ async function loadMyProjects() {
       <div class="row">
         <button class="btn secondary" onclick="openProject(${p.id})">이어하기</button>
         <button class="btn" onclick="saveProgressNote(${p.id})">진행 상황 저장</button>
+        <button class="btn danger" onclick="deleteProject(${p.id})">삭제</button>
       </div>
     </div>`).join('');
 }
@@ -159,6 +166,15 @@ async function saveProgressNote(projectId) {
 
 function openProject(id) {
   window.location.href = `wizard.html?project_id=${id}`;
+}
+
+async function deleteProject(projectId) {
+  const ok = confirm('이 탐구와 저장된 진행 상황, 교사 피드백을 삭제할까요?');
+  if (!ok) return;
+  const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+  if (!res.ok) return alert('탐구 삭제에 실패했습니다.');
+  alert('탐구가 삭제되었습니다.');
+  await loadMyProjects();
 }
 
 async function recommend() {

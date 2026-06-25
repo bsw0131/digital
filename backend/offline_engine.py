@@ -184,13 +184,105 @@ def make_plan(topic: str) -> str:
 """
 
 
+QUESTION_PROFILES = [
+    {
+        "keywords": ["AI", "인공지능", "알고리즘", "추천", "로봇", "자동화", "센서"],
+        "experience": "이 기술을 직접 사용하거나 본 경험",
+        "factor": "정확성, 편리함, 개인정보 보호, 공정성",
+        "comparison": "기술을 사용할 때와 사용하지 않을 때의 차이",
+        "solution": "더 안전하고 유용하게 쓰기 위한 기준",
+        "expert": "기술의 장점과 오류 가능성을 모두 설명할 수 있는 사람",
+    },
+    {
+        "keywords": ["스포츠", "운동", "훈련", "경기", "자세", "부상", "기록"],
+        "experience": "운동이나 경기에서 기록, 자세, 부상 예방을 신경 쓴 경험",
+        "factor": "기록 향상, 안전, 흥미, 꾸준한 참여",
+        "comparison": "훈련 방법이나 도구를 사용하기 전후의 차이",
+        "solution": "학교에서 실천할 수 있는 훈련 또는 안전 수칙",
+        "expert": "운동 경험이 많거나 체육 활동을 지도해 본 사람",
+    },
+    {
+        "keywords": ["유튜브", "영상", "미디어", "스마트폰", "SNS", "콘텐츠", "웹툰", "영화", "K-POP"],
+        "experience": "해당 콘텐츠나 플랫폼을 이용한 경험",
+        "factor": "몰입도, 정보 신뢰도, 추천 방식, 생활 습관 변화",
+        "comparison": "이용 시간이 많을 때와 적을 때의 차이",
+        "solution": "건강하고 비판적으로 이용하기 위한 방법",
+        "expert": "콘텐츠를 자주 이용하거나 미디어 사용 습관을 조절해 본 사람",
+    },
+    {
+        "keywords": ["환경", "탄소", "재활용", "쓰레기", "에너지", "기후", "동물", "생태"],
+        "experience": "생활 속 환경 문제를 보거나 해결하려고 해 본 경험",
+        "factor": "실천 가능성, 비용, 효과, 지속 가능성",
+        "comparison": "실천 전후 또는 장소별 환경 변화의 차이",
+        "solution": "학교에서 바로 해 볼 수 있는 환경 실천 방안",
+        "expert": "환경 활동에 참여했거나 학교 공간의 문제를 잘 아는 사람",
+    },
+    {
+        "keywords": ["건강", "수면", "스트레스", "음식", "식생활", "급식", "보건"],
+        "experience": "건강 습관이나 식생활을 바꾸려고 해 본 경험",
+        "factor": "건강 영향, 실천 난이도, 만족도, 생활 리듬",
+        "comparison": "습관이 좋을 때와 나쁠 때의 몸과 생활 차이",
+        "solution": "중학생에게 현실적으로 맞는 건강 실천 방법",
+        "expert": "건강 습관을 관리해 본 사람이나 관련 지식을 가진 사람",
+    },
+    {
+        "keywords": ["친구", "관계", "소통", "학교생활", "학습", "수업", "진로", "직업"],
+        "experience": "학교생활, 친구 관계, 학습, 진로와 관련해 겪은 경험",
+        "factor": "만족도, 갈등 원인, 도움 정도, 학교 적용 가능성",
+        "comparison": "경험이 많은 학생과 적은 학생의 생각 차이",
+        "solution": "학급이나 학교에서 실천할 수 있는 개선 방법",
+        "expert": "비슷한 경험을 했거나 친구들의 의견을 잘 들을 수 있는 사람",
+    },
+    {
+        "keywords": ["패션", "소비", "쇼핑", "브랜드", "여행", "문화"],
+        "experience": "선택, 소비, 문화 경험에서 영향을 받은 일",
+        "factor": "가격, 유행, 자기표현, 가치관, 지속 가능성",
+        "comparison": "선택 기준이 다른 학생들의 생각 차이",
+        "solution": "더 합리적이고 책임 있게 선택하는 방법",
+        "expert": "소비나 문화 경험에 대해 구체적으로 말할 수 있는 사람",
+    },
+]
+
+
+def _question_profile(topic: str) -> dict:
+    lowered = topic.lower()
+    matches = []
+    for profile in QUESTION_PROFILES:
+        score = sum(1 for keyword in profile["keywords"] if keyword.lower() in lowered)
+        if score > 0:
+            matches.append((score, profile))
+    matches.sort(key=lambda item: item[0], reverse=True)
+    if len(matches) >= 2:
+        primary = matches[0][1]
+        secondary = matches[1][1]
+        return {
+            "experience": f"{primary['experience']} 또는 {secondary['experience']}",
+            "factor": f"{primary['factor']} / {secondary['factor']}",
+            "comparison": f"{primary['comparison']}와 {secondary['comparison']}",
+            "solution": f"{primary['solution']}과 {secondary['solution']}",
+            "expert": f"{primary['expert']} 또는 {secondary['expert']}",
+        }
+    if matches:
+        return matches[0][1]
+    return {
+        "experience": "이 주제와 관련해 직접 겪거나 본 경험",
+        "factor": "원인, 영향, 장단점, 학교생활과의 관련성",
+        "comparison": "상황이나 사람에 따라 달라지는 점",
+        "solution": "학교에서 실천할 수 있는 개선 방법",
+        "expert": "이 주제와 관련된 경험이나 의견을 구체적으로 말할 수 있는 사람",
+    }
+
+
 def make_survey(topic: str) -> list[str]:
+    profile = _question_profile(topic)
     return [
-        f"{topic}에 대해 얼마나 관심이 있나요?",
-        f"{topic}이 학교생활에 영향을 준다고 생각하나요?",
-        f"{topic}과 관련해 가장 중요하다고 생각하는 점은 무엇인가요?",
-        "이 주제를 더 잘 이해하기 위해 학교에서 할 수 있는 활동은 무엇인가요?",
-        "자유롭게 의견을 적어 주세요.",
+        f"'{topic}' 주제와 관련해 {profile['experience']}이 있나요?",
+        f"'{topic}'에서 가장 중요하게 보아야 할 것은 무엇인가요? ({profile['factor']})",
+        "이 주제가 나의 생활이나 학교생활에 어떤 영향을 준다고 생각하나요?",
+        f"'{topic}'에 대해 {profile['comparison']}가 있다고 생각하나요?",
+        f"'{topic}'을 더 잘 이해하려면 어떤 자료나 사례를 조사해야 한다고 생각하나요?",
+        f"'{topic}'과 관련해 학교에서 실천할 수 있는 방법은 무엇인가요? ({profile['solution']})",
+        "이 주제에 대해 추가로 말하고 싶은 의견이나 걱정되는 점을 적어 주세요.",
     ]
 
 
@@ -301,10 +393,14 @@ def make_research_guide(topic: str) -> list[str]:
 
 
 def make_interview(topic: str) -> list[str]:
+    profile = _question_profile(topic)
     return [
-        f"{topic}에 대해 어떤 경험이 있나요?",
-        "이 문제를 해결하거나 개선하려면 무엇이 필요하다고 생각하나요?",
-        "친구들에게 조언하고 싶은 점이 있나요?",
+        f"'{topic}' 주제와 관련해 직접 겪었거나 본 경험을 구체적으로 말해 주세요.",
+        f"그 경험에서 가장 중요하다고 느낀 점은 무엇인가요? ({profile['factor']})",
+        "이 주제에서 문제가 생긴다면 가장 큰 원인은 무엇이라고 생각하나요?",
+        f"'{topic}'에 대해 {profile['comparison']}를 확인하려면 어떤 자료나 사례가 필요할까요?",
+        f"학교에서 이 주제를 개선하거나 활용하려면 어떤 방법이 현실적일까요? ({profile['solution']})",
+        f"이 주제를 조사할 때 {profile['expert']}에게 꼭 물어봐야 할 질문은 무엇일까요?",
     ]
 
 

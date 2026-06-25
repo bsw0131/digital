@@ -312,6 +312,22 @@ def update_progress_note(project_id: int, req: ProgressNoteReq):
     return {"ok": True}
 
 
+@app.delete("/api/projects/{project_id}")
+def delete_project(project_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM projects WHERE id=?", (project_id,))
+    if not cur.fetchone():
+        conn.close()
+        raise HTTPException(404, "project not found")
+    cur.execute("DELETE FROM feedback WHERE project_id=?", (project_id,))
+    cur.execute("DELETE FROM project_updates WHERE project_id=?", (project_id,))
+    cur.execute("DELETE FROM projects WHERE id=?", (project_id,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
 @app.get("/api/projects/{project_id}/guide")
 def get_guide(project_id: int):
     project = get_project(project_id)
