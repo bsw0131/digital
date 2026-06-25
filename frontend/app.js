@@ -13,13 +13,6 @@ const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterv
 const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90, 100];
 const RECOMMEND_PAGE_SIZE = 5;
 const RECOMMEND_MAX_ITEMS = 20;
-const RUBRICS = [
-  ['problem_def', '문제 설정'],
-  ['data_collection', '자료 수집'],
-  ['analysis', '분석'],
-  ['communication', '의사소통'],
-];
-
 window.onload = () => {
   const tagBox = document.getElementById('tags');
   if (tagBox) tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
@@ -74,10 +67,6 @@ function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
 }
 
-function rubricTotal(item) {
-  return RUBRICS.reduce((sum, [key]) => sum + Number(item?.[key] || 0), 0);
-}
-
 function setInternetStatus(online) {
   const box = document.getElementById('internetStatus');
   if (!box) return;
@@ -108,30 +97,21 @@ async function initInternetStatus() {
 async function login() {
   const name = document.getElementById('name').value.trim();
   const student_no = document.getElementById('studentNo').value.trim();
-  if (!name || !student_no) return alert('이름과 학번을 입력하세요.');
+  if (!name || !student_no) return alert('학번과 이름을 입력하세요.');
   currentStudent = await post('/api/student/login', { name, student_no });
   document.getElementById('loginBox').classList.add('hidden');
   document.getElementById('interestBox').classList.remove('hidden');
   await loadMyProjects();
 }
 
-function renderRubricSummary(item) {
-  const total = Number(item.total_score ?? rubricTotal(item));
-  return `<div class="rubric-summary">
-    <strong>루브릭 평가 ${total}/20점</strong>
-    <div class="rubric-score-list">${RUBRICS.map(([key, label]) => `<span>${label} ${Number(item[key] || 0)}점</span>`).join('')}</div>
-  </div>`;
-}
-
 function renderFeedbackHistory(feedbacks = []) {
   if (!feedbacks.length) return '';
   return `<div class="feedback-box">
-    <h4>교사 평가와 총평</h4>
+    <h4>교사 피드백</h4>
     <div class="feedback-list">${feedbacks.map(f => `
       <div class="feedback-item">
         <b>${esc(f.created_at || '')}</b>
-        ${renderRubricSummary(f)}
-        <p>${esc(f.teacher_comment || '교사 총평이 아직 입력되지 않았습니다.')}</p>
+        <p>${esc(f.teacher_comment || '교사 피드백이 아직 입력되지 않았습니다.')}</p>
       </div>`).join('')}</div>
   </div>`;
 }
@@ -399,28 +379,30 @@ async function saveAiSettings() {
 
 function renderUpdateHistory(updates = []) {
   if (!updates.length) return '<p class="muted">아직 저장 이력이 없습니다.</p>';
-  return `<div class="update-list">${updates.map(u => `<div class="update-item"><b>${esc(u.created_at || '')}</b><p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(u.changed_text || '')}</small></div>`).join('')}</div>`;
-}
-
-function scoreSelect(id, label) {
-  return `<label><span>${label}</span><select class="rubric-select" id="${id}">${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}">${v}점</option>`).join('')}</select></label>`;
-}
-
-function renderRubricForm(id) {
-  return `<div class="rubric-form">
-    ${RUBRICS.map(([key, label]) => scoreSelect(`r_${key}_${id}`, label)).join('')}
+  const latest = updates[0];
+  const allItems = updates.map(u => `<div class="update-item"><b>${esc(u.created_at || '')}</b><p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(u.changed_text || '')}</small></div>`).join('');
+  if (updates.length === 1) return `<div class="update-list">${allItems}</div>`;
+  return `<details class="update-history">
+    <summary>
+      <span>저장 이력 ${updates.length}개 전체 보기</span>
+      <span class="history-arrow">▾</span>
+    </summary>
+    <div class="update-list all-updates">${allItems}</div>
+  </details>
+  <div class="update-list latest-update">
+    <div class="update-item"><b>${esc(latest.created_at || '')}</b><p>${esc(latest.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(latest.changed_text || '')}</small></div>
   </div>`;
 }
 
 function renderDashboardFeedbackHistory(feedbacks = []) {
-  if (!feedbacks.length) return '<p class="muted">아직 저장된 평가가 없습니다.</p>';
-  return `<div class="teacher-feedback-history">${feedbacks.slice(0, 3).map(f => `<div class="teacher-feedback-item"><b>${esc(f.created_at || '')} · ${Number(f.total_score ?? rubricTotal(f))}/20점</b><small>${RUBRICS.map(([key, label]) => `${label} ${Number(f[key] || 0)}`).join(' · ')}</small><p>${esc(f.teacher_comment || '')}</p></div>`).join('')}</div>`;
+  if (!feedbacks.length) return '<p class="muted">아직 저장된 피드백이 없습니다.</p>';
+  return `<div class="teacher-feedback-history">${feedbacks.slice(0, 3).map(f => `<div class="teacher-feedback-item"><b>${esc(f.created_at || '')}</b><p>${esc(f.teacher_comment || '')}</p></div>`).join('')}</div>`;
 }
 
 async function loadDashboard() {
   const res = await (await fetch('/api/teacher/dashboard')).json();
   lastDashboard = res.items || [];
-  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">루브릭 평가와 총평</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}</td><td><strong>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</strong><p class="muted">최근 저장: ${esc(x.updated_at || '-')}</p>${renderUpdateHistory(x.updates || [])}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><label class="field-label" for="c${x.id}">교사 총평</label><textarea class="teacher-comment" id="c${x.id}" placeholder="학생에게 보여줄 총평을 적어주세요."></textarea>${renderRubricForm(x.id)}<button class="btn secondary" onclick="saveFeedback(${x.id})">평가 저장</button>${renderDashboardFeedbackHistory(x.feedbacks || [])}</td></tr>`).join('')}</table>`;
+  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">교사 피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}</td><td><strong>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</strong><p class="muted">최근 저장: ${esc(x.updated_at || '-')}</p>${renderUpdateHistory(x.updates || [])}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><label class="field-label" for="c${x.id}">교사 피드백</label><textarea class="teacher-comment" id="c${x.id}" placeholder="학생에게 보여줄 피드백을 적어주세요."></textarea><button class="btn secondary" onclick="saveFeedback(${x.id})">피드백 저장</button>${renderDashboardFeedbackHistory(x.feedbacks || [])}</td></tr>`).join('')}</table>`;
 }
 
 function saveDashboardPdf() {
@@ -439,9 +421,8 @@ async function resetStudentData() {
 
 async function saveFeedback(id) {
   const payload = { teacher_comment: valueOf(`c${id}`).trim() };
-  RUBRICS.forEach(([key]) => { payload[key] = numberOf(`r_${key}_${id}`); });
-  if (!payload.teacher_comment && rubricTotal(payload) === 0) return alert('총평을 입력하거나 루브릭 점수를 선택하세요.');
+  if (!payload.teacher_comment) return alert('교사 피드백을 입력하세요.');
   await post(`/api/projects/${id}/feedback`, payload);
-  alert('루브릭 평가와 총평이 저장되었습니다.');
+  alert('교사 피드백이 저장되었습니다.');
   await loadDashboard();
 }
