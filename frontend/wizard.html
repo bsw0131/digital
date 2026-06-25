@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>탐구 마법사 - AI 탐구메이트</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar"><a href="student.html">학생 탐구실로</a><span class="badge">Wizard</span></div>
+    <h1>탐구 마법사</h1>
+
+    <section class="card" id="projectBox">
+      <div class="section-title">
+        <div><h2 id="projectTopic">탐구 주제</h2><p class="muted" id="progressText">진행률 30%</p></div>
+        <button class="btn secondary" onclick="saveProject(autoProgress(), true)">저장</button>
+      </div>
+      <div class="bar big"><span id="progressBar" style="width:30%"></span></div>
+
+      <h3>탐구계획서</h3>
+      <textarea id="plan"></textarea>
+
+      <div class="row tools">
+        <button class="btn secondary" onclick="loadGuide()">자료조사 가이드</button>
+        <button class="btn secondary" onclick="loadSurvey()">설문 문항</button>
+        <button class="btn secondary" onclick="loadInterview()">인터뷰 질문</button>
+        <button class="btn" onclick="makeReport()">보고서 초안 생성</button>
+      </div>
+      <div id="guideOutput" class="output"></div>
+      <div id="surveyOutput" class="output"></div>
+
+      <h3>탐구일지</h3>
+      <textarea id="log" placeholder="오늘 한 활동, 알게 된 점, 다음에 할 일을 적어보세요."></textarea>
+
+      <h3>보고서</h3>
+      <div id="reportOutput" class="output"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
