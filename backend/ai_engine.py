@@ -1,5 +1,4 @@
 import json
-import os
 
 from dotenv import load_dotenv
 
@@ -11,22 +10,34 @@ from offline_engine import (
     make_survey,
     recommend_topics,
 )
+from settings_store import get_ai_settings_private
 
 load_dotenv()
 
 
+def get_online_config() -> dict:
+    settings = get_ai_settings_private()
+    return {
+        "enabled": bool(settings.get("online_ai_enabled")),
+        "api_key": settings.get("openai_api_key", ""),
+        "model": settings.get("model") or "gpt-4o-mini",
+    }
+
+
 def has_api_key() -> bool:
-    return bool(os.getenv("OPENAI_API_KEY"))
+    config = get_online_config()
+    return bool(config["enabled"] and config["api_key"])
 
 
 def recommend(tag: str, detail: str):
-    if not has_api_key():
+    config = get_online_config()
+    if not (config["enabled"] and config["api_key"]):
         return {"mode": "offline", "items": recommend_topics(tag, detail)}
 
     try:
         from openai import OpenAI
 
-        client = OpenAI()
+        client = OpenAI(api_key=config["api_key"])
         prompt = f"""
 중학교 2학년 학생용 탐구활동 주제 20개를 추천하라.
 관심 태그: {tag}
@@ -43,7 +54,7 @@ def recommend(tag: str, detail: str):
 fit.total 점수가 높은 순서로 정렬하라.
 """
         res = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=config["model"],
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
         )
