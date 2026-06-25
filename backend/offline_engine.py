@@ -1,4 +1,50 @@
-TEMPLATES = [
+INTEREST_PROFILES = {
+    "게임": ("게임 활동", "몰입, 전략 선택, 협동 경험"),
+    "스포츠": ("운동 경기와 훈련", "기록 향상, 자세 교정, 부상 예방"),
+    "음악": ("음악 감상과 창작", "감정 변화, 집중, 표현 방식"),
+    "K-POP": ("K-POP 팬 활동과 콘텐츠", "문화 확산, 팬덤 소통, 미디어 영향"),
+    "유튜브": ("영상 플랫폼 이용", "추천 알고리즘, 시청 습관, 정보 신뢰도"),
+    "웹툰": ("웹툰 콘텐츠", "서사 구조, 그림 표현, 독자 반응"),
+    "영화": ("영화 감상과 장면 연출", "메시지 전달, 감정 변화, 사회 문제 표현"),
+    "음식": ("음식 선택과 식생활", "건강, 소비 습관, 문화 차이"),
+    "동물": ("동물 행동과 공존", "생명 존중, 돌봄, 환경 적응"),
+    "환경": ("환경 보호 실천", "자원 절약, 탄소 배출, 생활 속 변화"),
+    "패션": ("패션과 자기표현", "소비 선택, 유행, 개성 표현"),
+    "친구관계": ("친구 관계와 소통", "공감, 갈등 해결, 협력"),
+    "스마트폰": ("스마트폰 사용", "생활 습관, 집중력, 디지털 안전"),
+    "진로": ("진로 탐색", "직업 이해, 역량 준비, 미래 변화"),
+    "과학": ("과학 원리와 실험", "관찰, 변인 통제, 원리 적용"),
+    "로봇": ("로봇 기술과 자동화", "센서 활용, 반복 작업, 인간 보조"),
+    "AI": ("인공지능 활용", "추천, 예측, 판단 보조, 윤리"),
+    "건강": ("건강한 생활 습관", "운동, 수면, 스트레스 관리"),
+    "여행": ("여행 경험과 지역 탐색", "문화 이해, 이동, 지역 문제"),
+    "학교생활": ("학교생활", "학습, 관계, 규칙, 공간 활용"),
+}
+
+FUSION_TEMPLATES = [
+    ("{context}에서 {b_domain}을 활용하면 {a_focus}에 어떤 변화가 생길까?", "과학", "중", "설문형", 3),
+    ("{context}을 개선하기 위한 {b_domain} 활용 아이디어 설계", "정보", "중", "실천형", 4),
+    ("{a_domain} 문제를 해결하는 {b_domain} 사례 조사와 학교 적용 가능성", "사회", "중", "자료조사형", 3),
+    ("{context}에 대한 학생들의 기대와 걱정 비교", "도덕", "중", "설문형", 3),
+    ("{b_domain}이 {a_domain}의 참여도와 흥미에 미치는 영향", "사회", "중", "설문형", 3),
+    ("{context} 관련 데이터를 수집해 효과를 분석하기", "수학", "상", "분석형", 4),
+    ("{a_domain}에서 {b_domain}을 안전하게 활용하기 위한 기준 만들기", "도덕", "중", "자료조사형", 3),
+    ("{context}을 주제로 한 학교 캠페인 또는 안내자료 제작", "국어", "하", "실천형", 3),
+    ("{b_domain} 활용 전후의 {a_focus} 변화를 비교하는 탐구", "과학", "상", "실험형", 5),
+    ("{context}에 대한 친구들의 경험을 인터뷰로 분석하기", "국어", "중", "인터뷰형", 3),
+    ("{a_domain} 속 불편함을 {b_domain}으로 해결하는 생활 발명 아이디어", "기술", "중", "실천형", 4),
+    ("{context} 관련 뉴스와 영상의 관점 차이 비교", "국어", "중", "자료조사형", 3),
+    ("{b_domain}이 {a_domain}의 공정성과 신뢰도에 미치는 영향", "사회", "상", "자료조사형", 4),
+    ("{context}에 필요한 학생용 체크리스트 만들기", "진로", "하", "실천형", 2),
+    ("{a_domain}을 더 재미있게 만드는 {b_domain} 요소 분석", "정보", "중", "분석형", 4),
+    ("{context}에서 발생할 수 있는 윤리적 쟁점 탐구", "도덕", "상", "자료조사형", 4),
+    ("{b_domain}을 활용한 {a_domain} 학습 도구의 장단점 분석", "정보", "중", "설문형", 3),
+    ("{context}을 학교 동아리 활동으로 운영하는 방법 제안", "진로", "하", "실천형", 3),
+    ("{a_domain} 경험이 많은 학생과 적은 학생의 {b_domain} 인식 비교", "사회", "중", "설문형", 3),
+    ("{context}을 주제로 한 작은 실험 또는 관찰 계획 세우기", "과학", "중", "실험형", 4),
+]
+
+SINGLE_TEMPLATES = [
     ("{interest}에 대한 중학생의 인식과 선호도 분석", "사회", "하", "설문형", 3),
     ("{interest} 이용 시간이 학습 습관에 미치는 영향", "도덕", "중", "설문형", 3),
     ("{interest} 관련 데이터를 활용한 통계 분석", "수학", "중", "분석형", 4),
@@ -39,6 +85,9 @@ def fit_scores(topic: str, inquiry_type: str = "") -> dict:
         school += 18
     elif inquiry_type == "실험형":
         experiment += 25
+    elif inquiry_type == "인터뷰형":
+        survey += 15
+        data += 8
     vals = [max(5, min(100, x)) for x in [data, survey, experiment, school]]
     total = round(vals[0] * 0.30 + vals[1] * 0.25 + vals[2] * 0.20 + vals[3] * 0.25)
     return {
@@ -50,27 +99,67 @@ def fit_scores(topic: str, inquiry_type: str = "") -> dict:
     }
 
 
+def _split_tags(tag: str) -> list[str]:
+    return [part.strip() for part in tag.split("+") if part.strip()]
+
+
+def _profile(name: str) -> tuple[str, str]:
+    return INTEREST_PROFILES.get(name, (name, "학생들의 생각, 생활 변화, 학교 적용 가능성"))
+
+
+def _fusion_context(tags: list[str], detail: str) -> dict:
+    first = tags[0] if tags else detail
+    second = tags[1] if len(tags) > 1 else detail
+    a_domain, a_focus = _profile(first)
+    b_domain, b_focus = _profile(second)
+    if detail and tags:
+        context = f"{detail} 상황에서 {a_domain}과 {b_domain}이 만나는 지점"
+    else:
+        context = f"{a_domain}과 {b_domain}이 만나는 생활 속 장면"
+    return {
+        "a_domain": a_domain,
+        "a_focus": a_focus,
+        "b_domain": b_domain,
+        "b_focus": b_focus,
+        "context": context,
+    }
+
+
 def recommend_topics(tag: str, detail: str) -> list[dict]:
-    interest = detail.strip() or tag.strip() or "학교생활"
-    tag_text = tag.strip()
-    if " + " in tag_text and detail.strip():
-        interest = f"{tag_text}와 관련된 {detail.strip()}"
-    elif " + " in tag_text:
-        interest = tag_text
+    tags = _split_tags(tag.strip())
+    detail = detail.strip()
+    is_fusion = len(tags) >= 2 or (len(tags) == 1 and detail)
 
     items = []
-    for template, subject, difficulty, inquiry_type, weeks in TEMPLATES:
-        topic = template.format(interest=interest)
-        fit = fit_scores(topic, inquiry_type)
-        items.append({
-            "topic": topic,
-            "subject": subject,
-            "difficulty": difficulty,
-            "inquiry_type": inquiry_type,
-            "duration": f"{weeks}주",
-            "reason": f"'{interest}'라는 관심사를 학교에서 조사 가능한 탐구 문제로 바꾼 주제입니다.",
-            "fit": fit,
-        })
+    if is_fusion:
+        context = _fusion_context(tags, detail)
+        for template, subject, difficulty, inquiry_type, weeks in FUSION_TEMPLATES:
+            topic = template.format(**context)
+            fit = fit_scores(topic, inquiry_type)
+            items.append({
+                "topic": topic,
+                "subject": subject,
+                "difficulty": difficulty,
+                "inquiry_type": inquiry_type,
+                "duration": f"{weeks}주",
+                "reason": f"선택한 관심사를 단순히 나열하지 않고, '{context['context']}'에서 조사할 수 있는 문제로 바꾼 주제입니다.",
+                "fit": fit,
+            })
+    else:
+        interest = detail or (tags[0] if tags else "학교생활")
+        for template, subject, difficulty, inquiry_type, weeks in SINGLE_TEMPLATES:
+            topic = template.format(interest=interest)
+            fit = fit_scores(topic, inquiry_type)
+            items.append({
+                "topic": topic,
+                "subject": subject,
+                "difficulty": difficulty,
+                "inquiry_type": inquiry_type,
+                "duration": f"{weeks}주",
+                "reason": f"'{interest}'라는 관심사를 학교에서 조사 가능한 탐구 문제로 바꾼 주제입니다.",
+                "fit": fit,
+            })
+
     items.sort(key=lambda x: x["fit"]["total"], reverse=True)
     return items[:20]
 
