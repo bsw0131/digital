@@ -1,4 +1,3 @@
-import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -222,8 +221,8 @@ def update_project(project_id: int, req: UpdateProjectReq):
     cur = conn.cursor()
     before = fetch_project_dict(cur, project_id)
     if not before:
-      conn.close()
-      raise HTTPException(404, "project not found")
+        conn.close()
+        raise HTTPException(404, "project not found")
     timestamp = now_label()
     after = {
         "plan": req.plan,
@@ -362,11 +361,22 @@ def dashboard():
     )
     rows = [dict(r) for r in cur.fetchall()]
     for row in rows:
+        computed_summary = summarize_progress(row)
+        if not row.get("progress_note") or row.get("progress_note") == "아직 입력된 진행 상황이 없습니다.":
+            row["progress_note"] = computed_summary
         cur.execute(
             "SELECT summary, changed_text, created_at FROM project_updates WHERE project_id=? ORDER BY id DESC LIMIT 5",
             (row["id"],),
         )
         row["updates"] = [dict(update) for update in cur.fetchall()]
+        if not row["updates"] and computed_summary != "아직 입력된 진행 상황이 없습니다.":
+            row["updates"] = [
+                {
+                    "summary": computed_summary,
+                    "changed_text": changed_update_text({}, row),
+                    "created_at": row.get("updated_at") or "저장 시간 기록 없음",
+                }
+            ]
     conn.close()
     return {"items": rows}
 
