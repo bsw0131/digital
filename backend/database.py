@@ -13,6 +13,16 @@ def get_conn():
     return conn
 
 
+def _columns(cur, table):
+    cur.execute(f"PRAGMA table_info({table})")
+    return {row[1] for row in cur.fetchall()}
+
+
+def _add_column_if_missing(cur, table, column, definition):
+    if column not in _columns(cur, table):
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
@@ -36,6 +46,7 @@ def init_db():
         fit_score INTEGER DEFAULT 0,
         plan TEXT DEFAULT '',
         research_log TEXT DEFAULT '',
+        progress_note TEXT DEFAULT '',
         report TEXT DEFAULT '',
         progress INTEGER DEFAULT 10,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -56,5 +67,6 @@ def init_db():
         FOREIGN KEY(project_id) REFERENCES projects(id)
     )
     """)
+    _add_column_if_missing(cur, "projects", "progress_note", "TEXT DEFAULT ''")
     conn.commit()
     conn.close()
