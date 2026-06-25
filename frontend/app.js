@@ -17,6 +17,7 @@ window.onload = () => {
   const tagBox = document.getElementById('tags');
   if (tagBox) tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
   initWizardPage();
+  initAiSettingsPage();
   initInternetStatus();
 };
 
@@ -370,10 +371,29 @@ async function teacherLogin() {
   const res = await post('/api/teacher/login', { password });
   if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
   teacherPassword = password;
+  sessionStorage.setItem('teacherPassword', password);
   document.getElementById('teacherLogin').classList.add('hidden');
   document.getElementById('dash').classList.remove('hidden');
-  document.getElementById('aiSettingsBox')?.classList.remove('hidden');
   await loadDashboard();
+}
+
+async function aiSettingsLogin() {
+  const password = valueOf('aiSettingsPw');
+  const res = await post('/api/teacher/login', { password });
+  if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
+  teacherPassword = password;
+  sessionStorage.setItem('teacherPassword', password);
+  document.getElementById('aiSettingsLogin')?.classList.add('hidden');
+  document.getElementById('aiSettingsBox')?.classList.remove('hidden');
+  await loadAiSettings();
+}
+
+async function initAiSettingsPage() {
+  if (!document.getElementById('aiSettingsLogin')) return;
+  teacherPassword = sessionStorage.getItem('teacherPassword') || '';
+  if (!teacherPassword) return;
+  document.getElementById('aiSettingsLogin')?.classList.add('hidden');
+  document.getElementById('aiSettingsBox')?.classList.remove('hidden');
   await loadAiSettings();
 }
 
