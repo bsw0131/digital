@@ -1,14 +1,18 @@
 let currentStudent = null;
-let selectedTag = '';
+let selectedTags = [];
 let currentProjectId = null;
 let currentProgressNote = '';
 let currentWizardStep = 0;
+let recommendedItems = [];
+let recommendationPage = 0;
 let lastDashboard = [];
 let teacherPassword = '';
 
 const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화','음식','동물','환경','패션','친구관계','스마트폰','진로','과학','로봇','AI','건강','여행','학교생활'];
 const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport'];
 const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90];
+const RECOMMEND_PAGE_SIZE = 5;
+const RECOMMEND_MAX_ITEMS = 20;
 
 window.onload = () => {
   const tagBox = document.getElementById('tags');
@@ -20,9 +24,18 @@ window.onload = () => {
 };
 
 function selectTag(el, tag) {
-  document.querySelectorAll('.tag').forEach(x => x.classList.remove('active'));
+  const exists = selectedTags.includes(tag);
+  if (exists) {
+    selectedTags = selectedTags.filter(x => x !== tag);
+    el.classList.remove('active');
+    return;
+  }
+  if (selectedTags.length >= 2) {
+    alert('관심사는 최대 2개까지 선택할 수 있습니다.');
+    return;
+  }
+  selectedTags.push(tag);
   el.classList.add('active');
-  selectedTag = tag;
 }
 
 async function post(url, data) {
@@ -121,13 +134,25 @@ function openProject(id) {
 }
 
 async function recommend() {
-  if (!selectedTag) return alert('태그를 선택하세요.');
-  const detail = document.getElementById('detail').value;
-  const res = await post('/api/recommend', { tag: selectedTag, detail });
-  const items = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0));
+  if (!selectedTags.length) return alert('관심사를 1개 이상 선택하세요.');
+  const detail = valueOf('detail');
+  const tagText = selectedTags.join(' + ');
+  const res = await post('/api/recommend', { tag: tagText, detail });
+  recommendedItems = (res.items || [])
+    .sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0))
+    .slice(0, RECOMMEND_MAX_ITEMS);
+  recommendationPage = 0;
   document.getElementById('recommendBox').classList.remove('hidden');
-  document.getElementById('modeText').innerText = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
-  document.getElementById('topics').innerHTML = items.map(it => {
+  const mode = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
+  document.getElementById('modeText').innerText = `${mode} ${tagText} 관심사를 기준으로 점수가 높은 순서대로 5개씩 보여줍니다.`;
+  renderRecommendations();
+}
+
+function renderRecommendations() {
+  const start = recommendationPage * RECOMMEND_PAGE_SIZE;
+  const pageItems = recommendedItems.slice(start, start + RECOMMEND_PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(recommendedItems.length / RECOMMEND_PAGE_SIZE));
+  document.getElementById('topics').innerHTML = pageItems.map(it => {
     const fit = it.fit || {};
     return `<div class="topic">
       <h3>${esc(it.topic)}</h3>
@@ -139,14 +164,27 @@ async function recommend() {
       <button class="btn" onclick='startProject(${JSON.stringify(it).replace(/'/g, "&#39;")})'>이 주제로 시작</button>
     </div>`;
   }).join('');
+  const nav = document.getElementById('recommendNav');
+  if (!nav) return;
+  nav.innerHTML = `
+    <button class="btn secondary" onclick="showRecommendationPage(-1)" ${recommendationPage === 0 ? 'disabled' : ''}>이전</button>
+    <span class="page-info">${recommendationPage + 1} / ${totalPages}쪽 · ${recommendedItems.length}개 중 ${start + 1}-${start + pageItems.length}번</span>
+    <button class="btn" onclick="showRecommendationPage(1)" ${recommendationPage >= totalPages - 1 ? 'disabled' : ''}>다음</button>`;
+}
+
+function showRecommendationPage(direction) {
+  const totalPages = Math.max(1, Math.ceil(recommendedItems.length / RECOMMEND_PAGE_SIZE));
+  recommendationPage = Math.max(0, Math.min(totalPages - 1, recommendationPage + direction));
+  renderRecommendations();
+  document.getElementById('recommendBox')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function startProject(item) {
   const fit = item.fit || {};
   const res = await post('/api/projects', {
     student_id: currentStudent.id,
-    tag: selectedTag,
-    interest: document.getElementById('detail').value,
+    tag: selectedTags.join(' + '),
+    interest: valueOf('detail'),
     topic: item.topic,
     subject: item.subject || '',
     fit_score: fit.total || 70,
