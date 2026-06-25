@@ -2,6 +2,7 @@ let currentStudent = null;
 let selectedTag = '';
 let currentProjectId = null;
 let lastDashboard = [];
+let teacherPassword = '';
 
 const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화','음식','동물','환경','패션','친구관계','스마트폰','진로','과학','로봇','AI','건강','여행','학교생활'];
 
@@ -11,6 +12,7 @@ window.onload = () => {
     tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
   }
   initWizardPage();
+  initInternetStatus();
 };
 
 function selectTag(el, tag) {
@@ -25,16 +27,41 @@ async function post(url, data) {
 }
 
 function esc(value) {
-  return String(value ?? '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  return String(value ?? '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch] }));
 }
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
 }
 
-function bar(label, value) {
-  value = clamp(value);
-  return `<p><b>${esc(label)}</b> ${value}점</p><div class="bar"><span style="width:${value}%"></span></div>`;
+function setInternetStatus(online) {
+  const box = document.getElementById('internetStatus');
+  if (!box) return;
+  box.classList.toggle('online', online);
+  box.classList.toggle('offline', !online);
+  box.classList.remove('checking');
+  box.innerHTML = `<span class="status-dot"></span><span>${online ? '인터넷이 연결되어 있음' : '인터넷이 연결되어 있지 않음'}</span>`;
+}
+
+async function initInternetStatus() {
+  const box = document.getElementById('internetStatus');
+  if (!box) return;
+  if (!navigator.onLine) {
+    setInternetStatus(false);
+    return;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    await fetch('https://www.gstatic.com/generate_204', { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+    setInternetStatus(true);
+  } catch (error) {
+    setInternetStatus(false);
+  } finally {
+    clearTimeout(timeout);
+  }
+  window.addEventListener('online', () => setInternetStatus(true));
+  window.addEventListener('offline', () => setInternetStatus(false));
 }
 
 async function login() {
@@ -55,9 +82,25 @@ async function loadMyProjects() {
     <div class="topic">
       <h3>${esc(p.topic)}</h3>
       <p class="muted">진행률 ${p.progress}% · 적합도 ${p.fit_score}점</p>
-      <div class="bar"><span style="width:${clamp(p.progress)}%"></span></div><br>
-      <button class="btn secondary" onclick="openProject(${p.id})">이어하기</button>
+      <div class="bar"><span style="width:${clamp(p.progress)}%"></span></div>
+      <label class="field-label" for="note${p.id}">진행 상황</label>
+      <textarea class="progress-note" id="note${p.id}" placeholder="오늘 진행한 내용, 어려운 점, 다음 계획을 적어보세요.">${esc(p.progress_note || '')}</textarea>
+      <div class="row">
+        <button class="btn secondary" onclick="openProject(${p.id})">이어하기</button>
+        <button class="btn" onclick="saveProgressNote(${p.id})">진행 상황 저장</button>
+      </div>
     </div>`).join('');
+}
+
+async function saveProgressNote(projectId) {
+  const note = document.getElementById(`note${projectId}`).value;
+  const res = await fetch(`/api/projects/${projectId}/progress-note`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ progress_note: note }),
+  });
+  if (!res.ok) return alert('진행 상황 저장에 실패했습니다.');
+  alert('진행 상황이 저장되었습니다.');
 }
 
 function openProject(id) {
@@ -146,6 +189,7 @@ async function saveProject(progress = autoProgress(), showAlert = false) {
     body: JSON.stringify({
       plan: document.getElementById('plan').value,
       research_log: document.getElementById('log').value,
+      progress_note: '',
       report: document.getElementById('reportOutput').innerText,
       progress,
     }),
@@ -183,6 +227,7 @@ async function teacherLogin() {
   const password = document.getElementById('teacherPw').value;
   const res = await post('/api/teacher/login', { password });
   if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
+  teacherPassword = password;
   document.getElementById('teacherLogin').classList.add('hidden');
   document.getElementById('dash').classList.remove('hidden');
   await loadDashboard();
@@ -191,7 +236,21 @@ async function teacherLogin() {
 async function loadDashboard() {
   const res = await (await fetch('/api/teacher/dashboard')).json();
   lastDashboard = res.items || [];
-  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>적합도</th><th>진행률</th><th>피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}<br><span class="pill">${esc(x.subject || '')}</span></td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td><input class="input" id="c${x.id}" placeholder="교사 피드백"><br><br><button class="btn secondary" onclick="saveFeedback(${x.id})">저장</button><p class="muted">${esc(x.teacher_comment || '')}</p></td></tr>`).join('')}</table>`;
+  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}<br><span class="pill">${esc(x.subject || '')}</span></td><td>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><input class="input" id="c${x.id}" placeholder="교사 피드백"><br><br><button class="btn secondary" onclick="saveFeedback(${x.id})">저장</button><p class="muted">${esc(x.teacher_comment || '')}</p></td></tr>`).join('')}</table>`;
+}
+
+function saveDashboardPdf() {
+  window.print();
+}
+
+async function resetStudentData() {
+  if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
+  const ok = confirm('모든 학생, 탐구, 피드백 자료를 삭제합니다. 계속할까요?');
+  if (!ok) return;
+  const res = await post('/api/teacher/reset', { password: teacherPassword });
+  if (!res.ok) return alert('초기화에 실패했습니다.');
+  alert('학생 자료가 초기화되었습니다.');
+  await loadDashboard();
 }
 
 async function saveFeedback(id) {
