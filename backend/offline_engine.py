@@ -194,12 +194,109 @@ def make_survey(topic: str) -> list[str]:
     ]
 
 
+GUIDE_PROFILES = [
+    {
+        "keywords": ["AI", "인공지능", "알고리즘", "추천", "로봇", "자동화", "센서"],
+        "source": "AI·기술 관련 기관 자료, 서비스 도움말, 기술 뉴스, 실제 활용 사례",
+        "method": "기술이 어떤 데이터를 입력받고 어떤 판단이나 추천을 내리는지 과정도를 그려 본다.",
+        "evidence": "정확도, 편리함, 개인정보, 공정성, 오류 가능성을 비교 기준으로 삼는다.",
+        "keywords_hint": "검색어 예: 인공지능 추천 원리, 로봇 센서 활용, 알고리즘 공정성",
+    },
+    {
+        "keywords": ["스포츠", "운동", "훈련", "경기", "자세", "부상", "기록"],
+        "source": "스포츠 과학 자료, 경기 기록, 훈련 방법 소개 자료, 보건·체육 기관 자료",
+        "method": "기록, 자세, 운동 전후 변화처럼 숫자로 비교할 수 있는 자료를 우선 찾는다.",
+        "evidence": "기록 변화, 부상 예방, 참여도, 체력 요소를 기준으로 자료를 분류한다.",
+        "keywords_hint": "검색어 예: 운동 기록 향상 요인, 스포츠 부상 예방, 자세 교정 방법",
+    },
+    {
+        "keywords": ["유튜브", "영상", "미디어", "스마트폰", "SNS", "콘텐츠", "웹툰", "영화", "K-POP"],
+        "source": "미디어 이용 통계, 플랫폼 정책, 청소년 미디어 연구, 콘텐츠 사례",
+        "method": "시청 시간, 추천 방식, 댓글 반응, 정보 신뢰도처럼 관찰 가능한 항목을 정한다.",
+        "evidence": "몰입도, 정보 신뢰성, 표현 방식, 청소년 생활 습관 영향을 비교한다.",
+        "keywords_hint": "검색어 예: 청소년 미디어 이용 통계, 추천 알고리즘 영향, 콘텐츠 소비 습관",
+    },
+    {
+        "keywords": ["환경", "탄소", "재활용", "쓰레기", "에너지", "기후", "동물", "생태"],
+        "source": "환경부·지자체 자료, 공공 통계, 환경 캠페인 사례, 생태 관련 기사",
+        "method": "우리 학교나 생활 주변에서 관찰할 수 있는 행동과 환경 변화를 연결해 조사한다.",
+        "evidence": "자원 절약 효과, 실천 가능성, 비용, 지속 가능성을 기준으로 정리한다.",
+        "keywords_hint": "검색어 예: 학교 재활용 실천, 탄소 배출 줄이기, 생활 속 환경 보호",
+    },
+    {
+        "keywords": ["건강", "수면", "스트레스", "음식", "식생활", "급식", "보건"],
+        "source": "보건복지부·질병관리청 자료, 식품영양 정보, 청소년 건강 통계",
+        "method": "생활 습관, 식단, 수면, 스트레스처럼 설문으로 확인할 항목을 먼저 정한다.",
+        "evidence": "건강 영향, 실천 난이도, 청소년에게 맞는 권장 기준을 비교한다.",
+        "keywords_hint": "검색어 예: 청소년 수면 권장 시간, 건강한 식생활, 스트레스 관리 방법",
+    },
+    {
+        "keywords": ["친구", "관계", "소통", "학교생활", "학습", "수업", "진로", "직업"],
+        "source": "교육부 자료, 학교생활 연구, 진로 정보 사이트, 청소년 상담 자료",
+        "method": "학생 경험을 설문·인터뷰로 모으고, 공식 자료와 비교해 공통점과 차이를 찾는다.",
+        "evidence": "만족도, 갈등 원인, 학습 효과, 진로 역량, 학교 적용 가능성을 기준으로 본다.",
+        "keywords_hint": "검색어 예: 학교생활 만족도, 또래 관계 갈등 해결, 청소년 진로 탐색",
+    },
+    {
+        "keywords": ["패션", "소비", "쇼핑", "브랜드", "여행", "문화"],
+        "source": "소비자원 자료, 문화·관광 통계, 브랜드 사례, 청소년 소비 관련 기사",
+        "method": "선택 이유, 가격, 유행, 가치관처럼 의사결정에 영향을 주는 요인을 나눠 조사한다.",
+        "evidence": "경제성, 자기표현, 문화적 의미, 지속 가능성을 비교 기준으로 삼는다.",
+        "keywords_hint": "검색어 예: 청소년 소비 행동, 패션과 자기표현, 여행 문화 차이",
+    },
+]
+
+
+def _guide_profile(topic: str) -> dict:
+    lowered = topic.lower()
+    matches = []
+    for profile in GUIDE_PROFILES:
+        score = sum(1 for keyword in profile["keywords"] if keyword.lower() in lowered)
+        if score > 0:
+            matches.append((score, profile))
+    matches.sort(key=lambda item: item[0], reverse=True)
+    if len(matches) >= 2:
+        primary = matches[0][1]
+        secondary = matches[1][1]
+        return {
+            "source": f"{primary['source']}와 {secondary['source']}",
+            "method": f"{primary['method']} 또한 {secondary['method']}",
+            "evidence": f"{primary['evidence']} 또한 {secondary['evidence']}",
+            "keywords_hint": f"{primary['keywords_hint']} / {secondary['keywords_hint']}",
+        }
+    if matches:
+        return matches[0][1]
+    return {
+        "source": "학교도서관, 공공기관 자료, 뉴스, 전문가 글처럼 출처가 분명한 자료",
+        "method": "주제의 원인, 영향, 해결 방법을 나누어 자료를 찾고 서로 비교한다.",
+        "evidence": "신뢰도, 학생 생활과의 관련성, 학교에서 실천할 가능성을 기준으로 정리한다.",
+        "keywords_hint": f"검색어 예: {topic} 원인, {topic} 영향, {topic} 해결 방법",
+    }
+
+
+def _guide_inquiry_focus(topic: str) -> str:
+    if any(word in topic for word in ["비교", "차이", "전후", "영향"]):
+        return "비교할 집단이나 조건을 먼저 정하고, 같은 기준으로 자료를 모은다."
+    if any(word in topic for word in ["해결", "개선", "제안", "캠페인", "아이디어"]):
+        return "이미 시도된 해결 사례를 2가지 이상 찾고, 우리 학교에 맞게 바꿀 점을 표시한다."
+    if any(word in topic for word in ["데이터", "통계", "분석", "기록"]):
+        return "숫자로 정리할 수 있는 자료를 우선 모으고, 표와 그래프로 바꿀 항목을 정한다."
+    if any(word in topic for word in ["윤리", "공정", "안전", "개인정보", "신뢰"]):
+        return "찬성·반대 근거를 각각 찾고, 학생 입장에서 지켜야 할 기준을 정리한다."
+    return "자료조사, 설문, 관찰 중 이 주제에 가장 잘 맞는 방법을 하나 정해 근거를 모은다."
+
+
 def make_research_guide(topic: str) -> list[str]:
+    profile = _guide_profile(topic)
+    focus = _guide_inquiry_focus(topic)
     return [
-        "학교도서관, 뉴스, 공공기관 자료처럼 출처가 분명한 자료를 찾는다.",
-        "자료의 작성자, 날짜, 기관을 기록한다.",
-        "설문 결과는 표와 그래프로 정리한다.",
-        "찾은 자료와 설문 결과가 탐구 문제에 답하는지 확인한다.",
+        f"'{topic}'와 직접 관련된 자료를 찾기 위해 {profile['source']}를 우선 확인한다.",
+        profile["keywords_hint"],
+        profile["method"],
+        focus,
+        f"자료를 읽을 때 {profile['evidence']}",
+        "자료마다 작성자, 날짜, 기관, 링크를 기록하고 최신 자료인지 확인한다.",
+        "마지막에는 찾은 자료가 탐구 문제에 답하는 데 충분한지 보고, 부족하면 설문이나 인터뷰 질문을 보완한다.",
     ]
 
 
