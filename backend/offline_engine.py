@@ -9,6 +9,16 @@ TEMPLATES = [
     ("{interest} 문제를 해결하기 위한 학교 캠페인 설계", "사회", "중", "실천형", 4),
     ("{interest}와 청소년 소비 행동의 관계 탐구", "사회", "중", "설문형", 3),
     ("{interest} 관련 윤리적 쟁점 탐구", "도덕", "상", "자료조사형", 4),
+    ("{interest}가 학교생활 만족도에 미치는 영향", "사회", "중", "설문형", 3),
+    ("{interest}를 주제로 한 학급 토론 자료 만들기", "국어", "하", "자료조사형", 2),
+    ("{interest} 경험 차이에 따른 학생 의견 비교", "사회", "중", "설문형", 3),
+    ("{interest}와 미디어 사용 습관의 관계 탐구", "정보", "중", "분석형", 4),
+    ("{interest}를 활용한 학교 문제 해결 아이디어 제안", "사회", "중", "실천형", 4),
+    ("{interest} 관련 뉴스의 관점과 신뢰도 비교", "국어", "상", "자료조사형", 4),
+    ("{interest}가 청소년 건강과 생활 리듬에 미치는 영향", "보건", "중", "설문형", 3),
+    ("{interest}와 환경 보호 실천 방법 연결하기", "과학", "중", "실천형", 4),
+    ("{interest}에 숨어 있는 수학적 패턴 찾기", "수학", "상", "분석형", 4),
+    ("{interest}를 더 안전하고 올바르게 이용하는 방법 탐구", "도덕", "중", "자료조사형", 3),
 ]
 
 
@@ -42,6 +52,12 @@ def fit_scores(topic: str, inquiry_type: str = "") -> dict:
 
 def recommend_topics(tag: str, detail: str) -> list[dict]:
     interest = detail.strip() or tag.strip() or "학교생활"
+    tag_text = tag.strip()
+    if " + " in tag_text and detail.strip():
+        interest = f"{tag_text}와 관련된 {detail.strip()}"
+    elif " + " in tag_text:
+        interest = tag_text
+
     items = []
     for template, subject, difficulty, inquiry_type, weeks in TEMPLATES:
         topic = template.format(interest=interest)
@@ -56,7 +72,7 @@ def recommend_topics(tag: str, detail: str) -> list[dict]:
             "fit": fit,
         })
     items.sort(key=lambda x: x["fit"]["total"], reverse=True)
-    return items
+    return items[:20]
 
 
 def make_plan(topic: str) -> str:
