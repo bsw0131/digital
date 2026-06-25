@@ -34,6 +34,15 @@ function esc(value) {
   return String(value ?? '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 }
 
+function valueOf(id) {
+  return document.getElementById(id)?.value || '';
+}
+
+function setValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value || '';
+}
+
 function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
 }
@@ -161,8 +170,12 @@ async function loadWizardProject(id) {
   currentProjectId = p.id;
   currentProgressNote = p.progress_note || '';
   document.getElementById('projectTopic').innerText = p.topic;
-  document.getElementById('plan').value = p.plan || '';
-  document.getElementById('log').value = p.research_log || '';
+  setValue('plan', p.plan);
+  setValue('planNote', p.plan_note);
+  setValue('guideNote', p.guide_note);
+  setValue('surveyNote', p.survey_note);
+  setValue('interviewNote', p.interview_note);
+  setValue('log', p.research_log);
   document.getElementById('reportOutput').innerHTML = p.report ? `<pre>${esc(p.report)}</pre>` : '';
   const progress = Number(p.progress || 30);
   const step = progress >= 90 ? 5 : progress >= 80 ? 4 : progress >= 70 ? 3 : progress >= 60 ? 2 : progress >= 45 ? 1 : 0;
@@ -203,11 +216,11 @@ async function prevWizardStep() {
 
 function autoProgress() {
   let progress = WIZARD_PROGRESS[currentWizardStep] || 30;
-  if ((document.getElementById('plan')?.value || '').trim().length > 50) progress = Math.max(progress, 45);
-  if ((document.getElementById('guideOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 55);
-  if ((document.getElementById('surveyOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 65);
-  if ((document.getElementById('interviewOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 75);
-  if ((document.getElementById('log')?.value || '').trim().length > 20) progress = Math.max(progress, 80);
+  if ((valueOf('plan') || '').trim().length > 50 || (valueOf('planNote') || '').trim().length > 10) progress = Math.max(progress, 45);
+  if ((document.getElementById('guideOutput')?.innerText || '').trim().length > 20 || (valueOf('guideNote') || '').trim().length > 10) progress = Math.max(progress, 55);
+  if ((document.getElementById('surveyOutput')?.innerText || '').trim().length > 20 || (valueOf('surveyNote') || '').trim().length > 10) progress = Math.max(progress, 65);
+  if ((document.getElementById('interviewOutput')?.innerText || '').trim().length > 20 || (valueOf('interviewNote') || '').trim().length > 10) progress = Math.max(progress, 75);
+  if ((valueOf('log') || '').trim().length > 20) progress = Math.max(progress, 80);
   if ((document.getElementById('reportOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 90);
   updateProgress(progress);
   return progress;
@@ -227,8 +240,12 @@ async function saveProject(progress = autoProgress(), showAlert = false) {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      plan: document.getElementById('plan').value,
-      research_log: document.getElementById('log').value,
+      plan: valueOf('plan'),
+      plan_note: valueOf('planNote'),
+      guide_note: valueOf('guideNote'),
+      survey_note: valueOf('surveyNote'),
+      interview_note: valueOf('interviewNote'),
+      research_log: valueOf('log'),
       progress_note: currentProgressNote,
       report: document.getElementById('reportOutput').innerText,
       progress,
