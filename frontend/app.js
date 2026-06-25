@@ -411,10 +411,20 @@ async function saveAiSettings() {
   await loadAiSettings();
 }
 
+function renderUpdateHistory(updates = []) {
+  if (!updates.length) return '<p class="muted">아직 저장 이력이 없습니다.</p>';
+  return `<div class="update-list">${updates.map(u => `
+    <div class="update-item">
+      <b>${esc(u.created_at || '')}</b>
+      <p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p>
+      <small>${esc(u.changed_text || '')}</small>
+    </div>`).join('')}</div>`;
+}
+
 async function loadDashboard() {
   const res = await (await fetch('/api/teacher/dashboard')).json();
   lastDashboard = res.items || [];
-  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}<br><span class="pill">${esc(x.subject || '')}</span></td><td>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><input class="input" id="c${x.id}" placeholder="교사 피드백"><br><br><button class="btn secondary" onclick="saveFeedback(${x.id})">저장</button><p class="muted">${esc(x.teacher_comment || '')}</p></td></tr>`).join('')}</table>`;
+  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}</td><td><strong>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</strong><p class="muted">최근 저장: ${esc(x.updated_at || '-')}</p>${renderUpdateHistory(x.updates || [])}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><input class="input" id="c${x.id}" placeholder="교사 피드백"><br><br><button class="btn secondary" onclick="saveFeedback(${x.id})">저장</button><p class="muted">${esc(x.teacher_comment || '')}</p></td></tr>`).join('')}</table>`;
 }
 
 function saveDashboardPdf() {
