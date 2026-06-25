@@ -9,8 +9,8 @@ let lastDashboard = [];
 let teacherPassword = '';
 
 const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화','음식','동물','환경','패션','친구관계','스마트폰','진로','과학','로봇','AI','건강','여행','학교생활'];
-const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport'];
-const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90];
+const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport', 'wizardPrint'];
+const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90, 100];
 const RECOMMEND_PAGE_SIZE = 5;
 const RECOMMEND_MAX_ITEMS = 20;
 
@@ -227,9 +227,10 @@ async function loadWizardProject(id) {
   setValue('surveyNote', p.survey_note);
   setValue('interviewNote', p.interview_note);
   setValue('log', p.research_log);
+  setValue('reportNote', p.report_note);
   document.getElementById('reportOutput').innerHTML = p.report ? `<pre>${esc(p.report)}</pre>` : '';
   const progress = Number(p.progress || 30);
-  const step = progress >= 90 ? 5 : progress >= 80 ? 4 : progress >= 70 ? 3 : progress >= 60 ? 2 : progress >= 45 ? 1 : 0;
+  const step = progress >= 100 ? 6 : progress >= 90 ? 5 : progress >= 80 ? 4 : progress >= 70 ? 3 : progress >= 60 ? 2 : progress >= 45 ? 1 : 0;
   setWizardStep(step, progress);
 }
 
@@ -248,6 +249,7 @@ function setWizardStep(step, progressOverride = null) {
   if (prev) prev.disabled = currentWizardStep === 0;
   if (next) next.innerText = currentWizardStep === WIZARD_PAGES.length - 1 ? '완료' : '다음';
   updateProgress(progressOverride ?? WIZARD_PROGRESS[currentWizardStep]);
+  if (WIZARD_PAGES[currentWizardStep] === 'wizardPrint') renderPrintSummary();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -256,7 +258,7 @@ async function nextWizardStep() {
   if (currentWizardStep < WIZARD_PAGES.length - 1) {
     setWizardStep(currentWizardStep + 1);
   } else {
-    alert('탐구 마법사를 완료했습니다. 보고서 초안을 확인하고 필요한 내용을 수정해 주세요.');
+    alert('탐구 마법사를 완료했습니다. PDF로 저장하려면 인쇄 창에서 프린터를 PDF 저장으로 선택하세요.');
   }
 }
 
@@ -272,7 +274,8 @@ function autoProgress() {
   if ((document.getElementById('surveyOutput')?.innerText || '').trim().length > 20 || (valueOf('surveyNote') || '').trim().length > 10) progress = Math.max(progress, 65);
   if ((document.getElementById('interviewOutput')?.innerText || '').trim().length > 20 || (valueOf('interviewNote') || '').trim().length > 10) progress = Math.max(progress, 75);
   if ((valueOf('log') || '').trim().length > 20) progress = Math.max(progress, 80);
-  if ((document.getElementById('reportOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 90);
+  if ((document.getElementById('reportOutput')?.innerText || '').trim().length > 20 || (valueOf('reportNote') || '').trim().length > 10) progress = Math.max(progress, 90);
+  if (currentWizardStep === WIZARD_PAGES.length - 1) progress = Math.max(progress, 100);
   updateProgress(progress);
   return progress;
 }
@@ -299,6 +302,7 @@ async function saveProject(progress = autoProgress(), showAlert = false) {
       research_log: valueOf('log'),
       progress_note: currentProgressNote,
       report: document.getElementById('reportOutput').innerText,
+      report_note: valueOf('reportNote'),
       progress,
     }),
   });
@@ -330,6 +334,33 @@ async function makeReport() {
   document.getElementById('reportOutput').innerHTML = `<pre>${esc(res.report)}</pre>`;
   setWizardStep(5, 90);
   await saveProject(90);
+}
+
+function summarySection(title, text) {
+  return `<section><h3>${esc(title)}</h3><div class="summary-text">${esc(text || '아직 작성된 내용이 없습니다.')}</div></section>`;
+}
+
+function renderPrintSummary() {
+  const box = document.getElementById('printSummary');
+  if (!box) return;
+  const reportText = document.getElementById('reportOutput')?.innerText || '';
+  box.innerHTML = `
+    <h2>AI 탐구메이트 정리내용</h2>
+    <p><b>탐구 주제</b> ${esc(document.getElementById('projectTopic')?.innerText || '')}</p>
+    ${summarySection('탐구계획서', valueOf('plan'))}
+    ${summarySection('계획서 메모', valueOf('planNote'))}
+    ${summarySection('자료조사 메모', valueOf('guideNote'))}
+    ${summarySection('설문 메모', valueOf('surveyNote'))}
+    ${summarySection('인터뷰 메모', valueOf('interviewNote'))}
+    ${summarySection('탐구일지', valueOf('log'))}
+    ${summarySection('보고서 초안', reportText)}
+    ${summarySection('보고서 정리 메모', valueOf('reportNote'))}`;
+}
+
+async function printSummary() {
+  await saveProject(100, false);
+  renderPrintSummary();
+  window.print();
 }
 
 async function teacherLogin() {
