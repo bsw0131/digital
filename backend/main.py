@@ -1,7 +1,6 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
 FRONTEND_DIR = RESOURCE_DIR / "frontend"
 TEACHER_PASSWORD = "teacher1234"
-KST = ZoneInfo("Asia/Seoul")
+KST = timezone(timedelta(hours=9))
 
 app = FastAPI(title="AI 탐구메이트")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
