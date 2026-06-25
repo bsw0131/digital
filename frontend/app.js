@@ -32,13 +32,26 @@ function selectTag(el, tag) {
   el.classList.add('active');
 }
 
+function parseDetailInterests() {
+  return valueOf('detail').split(/[,，、]/).map(item => item.trim()).filter(Boolean);
+}
+
 function getInterestQuery() {
-  const detail = valueOf('detail').trim();
+  const detailItems = parseDetailInterests();
+  const detail = detailItems.join(' + ');
   const tagText = selectedTags.join(' + ');
   const parts = [];
   if (detail) parts.push(`직접 입력: ${detail}`);
   if (tagText) parts.push(`버튼 선택: ${tagText}`);
-  return { detail, tagText, queryText: parts.join(' + ') };
+  return { detail, detailItems, tagText, queryText: parts.join(' + ') };
+}
+
+function validateInterestSelection(detailItems) {
+  const total = selectedTags.length + detailItems.length;
+  if (total === 0) return '버튼 관심사를 선택하거나 직접 관심사를 입력하세요.';
+  if (detailItems.length > 2) return '직접 입력 관심사는 쉼표(,)로 구분해 최대 2개까지 입력하세요.';
+  if (total > 2) return '버튼 관심사와 직접 입력 관심사를 합쳐 최대 2개까지 융합할 수 있습니다.';
+  return '';
 }
 
 async function post(url, data) {
@@ -149,8 +162,9 @@ function openProject(id) {
 }
 
 async function recommend() {
-  const { detail, tagText, queryText } = getInterestQuery();
-  if (!detail && !tagText) return alert('버튼 관심사를 선택하거나 직접 관심사를 입력하세요.');
+  const { detail, detailItems, tagText, queryText } = getInterestQuery();
+  const error = validateInterestSelection(detailItems);
+  if (error) return alert(error);
   const res = await post('/api/recommend', { tag: tagText, detail });
   recommendedItems = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0)).slice(0, RECOMMEND_MAX_ITEMS);
   recommendationPage = 0;
