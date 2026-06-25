@@ -93,6 +93,18 @@ def compact_text(value: str, limit: int = 80) -> str:
     return text[:limit].rstrip() + "..."
 
 
+def clamp_score(value: int) -> int:
+    return max(0, min(5, int(value or 0)))
+
+
+def add_feedback_total(row: dict) -> dict:
+    row["total_score"] = sum(
+        clamp_score(row.get(key, 0))
+        for key in ["problem_def", "data_collection", "analysis", "communication"]
+    )
+    return row
+
+
 def summarize_progress(data: dict) -> str:
     parts = []
     labels = [
@@ -145,10 +157,13 @@ def fetch_project_dict(cur, project_id: int) -> dict:
 
 def fetch_feedback_history(cur, project_id: int) -> list[dict]:
     cur.execute(
-        "SELECT teacher_comment, created_at FROM feedback WHERE project_id=? AND teacher_comment<>'' ORDER BY id DESC",
+        """SELECT teacher_comment, problem_def, data_collection, analysis, communication, created_at
+        FROM feedback
+        WHERE project_id=? AND (teacher_comment<>'' OR problem_def>0 OR data_collection>0 OR analysis>0 OR communication>0)
+        ORDER BY id DESC""",
         (project_id,),
     )
-    return [dict(row) for row in cur.fetchall()]
+    return [add_feedback_total(dict(row)) for row in cur.fetchall()]
 
 
 @app.on_event("startup")
@@ -413,14 +428,28 @@ def save_feedback(project_id: int, req: FeedbackReq):
     conn = get_conn()
     cur = conn.cursor()
     timestamp = now_label()
+    scores = {
+        "problem_def": clamp_score(req.problem_def),
+        "data_collection": clamp_score(req.data_collection),
+        "analysis": clamp_score(req.analysis),
+        "communication": clamp_score(req.communication),
+    }
     cur.execute(
         """INSERT INTO feedback(project_id, teacher_comment, problem_def, data_collection, analysis, communication, created_at)
         VALUES(?,?,?,?,?,?,?)""",
-        (project_id, req.teacher_comment, req.problem_def, req.data_collection, req.analysis, req.communication, timestamp),
+        (
+            project_id,
+            req.teacher_comment,
+            scores["problem_def"],
+            scores["data_collection"],
+            scores["analysis"],
+            scores["communication"],
+            timestamp,
+        ),
     )
     conn.commit()
     conn.close()
-    return {"ok": True, "created_at": timestamp}
+    return {"ok": True, "created_at": timestamp, "total_score": sum(scores.values())}
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
