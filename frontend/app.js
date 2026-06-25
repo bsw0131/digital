@@ -13,12 +13,16 @@ const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterv
 const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90, 100];
 const RECOMMEND_PAGE_SIZE = 5;
 const RECOMMEND_MAX_ITEMS = 20;
+const RUBRICS = [
+  ['problem_def', '문제 설정'],
+  ['data_collection', '자료 수집'],
+  ['analysis', '분석'],
+  ['communication', '의사소통'],
+];
 
 window.onload = () => {
   const tagBox = document.getElementById('tags');
-  if (tagBox) {
-    tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
-  }
+  if (tagBox) tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
   initWizardPage();
   initInternetStatus();
 };
@@ -30,10 +34,7 @@ function selectTag(el, tag) {
     el.classList.remove('active');
     return;
   }
-  if (selectedTags.length >= 2) {
-    alert('버튼 관심사는 최대 2개까지 선택할 수 있습니다.');
-    return;
-  }
+  if (selectedTags.length >= 2) return alert('버튼 관심사는 최대 2개까지 선택할 수 있습니다.');
   selectedTags.push(tag);
   el.classList.add('active');
 }
@@ -44,11 +45,7 @@ function getInterestQuery() {
   const parts = [];
   if (detail) parts.push(`직접 입력: ${detail}`);
   if (tagText) parts.push(`버튼 선택: ${tagText}`);
-  return {
-    detail,
-    tagText,
-    queryText: parts.join(' + '),
-  };
+  return { detail, tagText, queryText: parts.join(' + ') };
 }
 
 async function post(url, data) {
@@ -64,6 +61,10 @@ function valueOf(id) {
   return document.getElementById(id)?.value || '';
 }
 
+function numberOf(id) {
+  return Number(valueOf(id) || 0);
+}
+
 function setValue(id, value) {
   const el = document.getElementById(id);
   if (el) el.value = value || '';
@@ -71,6 +72,10 @@ function setValue(id, value) {
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
+}
+
+function rubricTotal(item) {
+  return RUBRICS.reduce((sum, [key]) => sum + Number(item?.[key] || 0), 0);
 }
 
 function setInternetStatus(online) {
@@ -85,10 +90,7 @@ function setInternetStatus(online) {
 async function initInternetStatus() {
   const box = document.getElementById('internetStatus');
   if (!box) return;
-  if (!navigator.onLine) {
-    setInternetStatus(false);
-    return;
-  }
+  if (!navigator.onLine) return setInternetStatus(false);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
@@ -113,14 +115,23 @@ async function login() {
   await loadMyProjects();
 }
 
+function renderRubricSummary(item) {
+  const total = Number(item.total_score ?? rubricTotal(item));
+  return `<div class="rubric-summary">
+    <strong>루브릭 평가 ${total}/20점</strong>
+    <div class="rubric-score-list">${RUBRICS.map(([key, label]) => `<span>${label} ${Number(item[key] || 0)}점</span>`).join('')}</div>
+  </div>`;
+}
+
 function renderFeedbackHistory(feedbacks = []) {
   if (!feedbacks.length) return '';
   return `<div class="feedback-box">
-    <h4>교사 피드백</h4>
+    <h4>교사 평가와 총평</h4>
     <div class="feedback-list">${feedbacks.map(f => `
       <div class="feedback-item">
         <b>${esc(f.created_at || '')}</b>
-        <p>${esc(f.teacher_comment || '')}</p>
+        ${renderRubricSummary(f)}
+        <p>${esc(f.teacher_comment || '교사 총평이 아직 입력되지 않았습니다.')}</p>
       </div>`).join('')}</div>
   </div>`;
 }
@@ -147,9 +158,7 @@ async function loadMyProjects() {
 async function saveProgressNote(projectId) {
   const note = document.getElementById(`note${projectId}`).value;
   const res = await fetch(`/api/projects/${projectId}/progress-note`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ progress_note: note }),
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ progress_note: note }),
   });
   if (!res.ok) return alert('진행 상황 저장에 실패했습니다.');
   alert('진행 상황이 저장되었습니다.');
@@ -163,9 +172,7 @@ async function recommend() {
   const { detail, tagText, queryText } = getInterestQuery();
   if (!detail && !tagText) return alert('버튼 관심사를 선택하거나 직접 관심사를 입력하세요.');
   const res = await post('/api/recommend', { tag: tagText, detail });
-  recommendedItems = (res.items || [])
-    .sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0))
-    .slice(0, RECOMMEND_MAX_ITEMS);
+  recommendedItems = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0)).slice(0, RECOMMEND_MAX_ITEMS);
   recommendationPage = 0;
   document.getElementById('recommendBox').classList.remove('hidden');
   const mode = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
@@ -191,10 +198,7 @@ function renderRecommendations() {
   }).join('');
   const nav = document.getElementById('recommendNav');
   if (!nav) return;
-  nav.innerHTML = `
-    <button class="btn secondary" onclick="showRecommendationPage(-1)" ${recommendationPage === 0 ? 'disabled' : ''}>이전</button>
-    <span class="page-info">${recommendationPage + 1} / ${totalPages}쪽 · ${recommendedItems.length}개 중 ${start + 1}-${start + pageItems.length}번</span>
-    <button class="btn" onclick="showRecommendationPage(1)" ${recommendationPage >= totalPages - 1 ? 'disabled' : ''}>다음</button>`;
+  nav.innerHTML = `<button class="btn secondary" onclick="showRecommendationPage(-1)" ${recommendationPage === 0 ? 'disabled' : ''}>이전</button><span class="page-info">${recommendationPage + 1} / ${totalPages}쪽 · ${recommendedItems.length}개 중 ${start + 1}-${start + pageItems.length}번</span><button class="btn" onclick="showRecommendationPage(1)" ${recommendationPage >= totalPages - 1 ? 'disabled' : ''}>다음</button>`;
 }
 
 function showRecommendationPage(direction) {
@@ -207,14 +211,7 @@ function showRecommendationPage(direction) {
 async function startProject(item) {
   const fit = item.fit || {};
   const { detail, tagText } = getInterestQuery();
-  const res = await post('/api/projects', {
-    student_id: currentStudent.id,
-    tag: tagText,
-    interest: detail,
-    topic: item.topic,
-    subject: item.subject || '',
-    fit_score: fit.total || 70,
-  });
+  const res = await post('/api/projects', { student_id: currentStudent.id, tag: tagText, interest: detail, topic: item.topic, subject: item.subject || '', fit_score: fit.total || 70 });
   window.location.href = `wizard.html?project_id=${res.project_id}`;
 }
 
@@ -249,10 +246,7 @@ async function loadWizardProject(id) {
 
 function setWizardStep(step, progressOverride = null) {
   currentWizardStep = Math.max(0, Math.min(WIZARD_PAGES.length - 1, step));
-  WIZARD_PAGES.forEach((id, index) => {
-    const page = document.getElementById(id);
-    if (page) page.classList.toggle('hidden', index !== currentWizardStep);
-  });
+  WIZARD_PAGES.forEach((id, index) => document.getElementById(id)?.classList.toggle('hidden', index !== currentWizardStep));
   document.querySelectorAll('#wizardStepper span').forEach((item, index) => {
     item.classList.toggle('active', index === currentWizardStep);
     item.classList.toggle('done', index < currentWizardStep);
@@ -306,20 +300,8 @@ function updateProgress(progress) {
 async function saveProject(progress = autoProgress(), showAlert = false) {
   if (!currentProjectId) return null;
   const res = await fetch(`/api/projects/${currentProjectId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      plan: valueOf('plan'),
-      plan_note: valueOf('planNote'),
-      guide_note: valueOf('guideNote'),
-      survey_note: valueOf('surveyNote'),
-      interview_note: valueOf('interviewNote'),
-      research_log: valueOf('log'),
-      progress_note: currentProgressNote,
-      report: document.getElementById('reportOutput').innerText,
-      report_note: valueOf('reportNote'),
-      progress,
-    }),
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan: valueOf('plan'), plan_note: valueOf('planNote'), guide_note: valueOf('guideNote'), survey_note: valueOf('surveyNote'), interview_note: valueOf('interviewNote'), research_log: valueOf('log'), progress_note: currentProgressNote, report: document.getElementById('reportOutput').innerText, report_note: valueOf('reportNote'), progress }),
   });
   if (!res.ok) {
     alert('저장에 실패했습니다. 잠시 후 다시 시도하세요.');
@@ -364,17 +346,7 @@ function renderPrintSummary() {
   const box = document.getElementById('printSummary');
   if (!box) return;
   const reportText = document.getElementById('reportOutput')?.innerText || '';
-  box.innerHTML = `
-    <h2>AI 탐구메이트 정리내용</h2>
-    <p><b>탐구 주제</b> ${esc(document.getElementById('projectTopic')?.innerText || '')}</p>
-    ${summarySection('탐구계획서', valueOf('plan'))}
-    ${summarySection('계획서 메모', valueOf('planNote'))}
-    ${summarySection('자료조사 메모', valueOf('guideNote'))}
-    ${summarySection('설문 메모', valueOf('surveyNote'))}
-    ${summarySection('인터뷰 메모', valueOf('interviewNote'))}
-    ${summarySection('탐구일지', valueOf('log'))}
-    ${summarySection('보고서 초안', reportText)}
-    ${summarySection('보고서 정리 메모', valueOf('reportNote'))}`;
+  box.innerHTML = `<h2>AI 탐구메이트 정리내용</h2><p><b>탐구 주제</b> ${esc(document.getElementById('projectTopic')?.innerText || '')}</p>${summarySection('탐구계획서', valueOf('plan'))}${summarySection('계획서 메모', valueOf('planNote'))}${summarySection('자료조사 메모', valueOf('guideNote'))}${summarySection('설문 메모', valueOf('surveyNote'))}${summarySection('인터뷰 메모', valueOf('interviewNote'))}${summarySection('탐구일지', valueOf('log'))}${summarySection('보고서 초안', reportText)}${summarySection('보고서 정리 메모', valueOf('reportNote'))}`;
 }
 
 async function printSummary() {
@@ -418,13 +390,7 @@ async function loadAiSettings() {
 
 async function saveAiSettings() {
   if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
-  const payload = {
-    password: teacherPassword,
-    online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked,
-    openai_api_key: valueOf('aiApiKey'),
-    clear_api_key: !!document.getElementById('clearAiKey')?.checked,
-    model: valueOf('aiModel') || 'gpt-4o-mini',
-  };
+  const payload = { password: teacherPassword, online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked, openai_api_key: valueOf('aiApiKey'), clear_api_key: !!document.getElementById('clearAiKey')?.checked, model: valueOf('aiModel') || 'gpt-4o-mini' };
   const res = await post('/api/teacher/ai-settings/save', payload);
   if (!res.ok) return alert('AI 설정 저장에 실패했습니다.');
   alert('AI 설정이 저장되었습니다.');
@@ -433,18 +399,28 @@ async function saveAiSettings() {
 
 function renderUpdateHistory(updates = []) {
   if (!updates.length) return '<p class="muted">아직 저장 이력이 없습니다.</p>';
-  return `<div class="update-list">${updates.map(u => `
-    <div class="update-item">
-      <b>${esc(u.created_at || '')}</b>
-      <p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p>
-      <small>${esc(u.changed_text || '')}</small>
-    </div>`).join('')}</div>`;
+  return `<div class="update-list">${updates.map(u => `<div class="update-item"><b>${esc(u.created_at || '')}</b><p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(u.changed_text || '')}</small></div>`).join('')}</div>`;
+}
+
+function scoreSelect(id, label) {
+  return `<label><span>${label}</span><select class="rubric-select" id="${id}">${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}">${v}점</option>`).join('')}</select></label>`;
+}
+
+function renderRubricForm(id) {
+  return `<div class="rubric-form">
+    ${RUBRICS.map(([key, label]) => scoreSelect(`r_${key}_${id}`, label)).join('')}
+  </div>`;
+}
+
+function renderDashboardFeedbackHistory(feedbacks = []) {
+  if (!feedbacks.length) return '<p class="muted">아직 저장된 평가가 없습니다.</p>';
+  return `<div class="teacher-feedback-history">${feedbacks.slice(0, 3).map(f => `<div class="teacher-feedback-item"><b>${esc(f.created_at || '')} · ${Number(f.total_score ?? rubricTotal(f))}/20점</b><small>${RUBRICS.map(([key, label]) => `${label} ${Number(f[key] || 0)}`).join(' · ')}</small><p>${esc(f.teacher_comment || '')}</p></div>`).join('')}</div>`;
 }
 
 async function loadDashboard() {
   const res = await (await fetch('/api/teacher/dashboard')).json();
   lastDashboard = res.items || [];
-  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}</td><td><strong>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</strong><p class="muted">최근 저장: ${esc(x.updated_at || '-')}</p>${renderUpdateHistory(x.updates || [])}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><input class="input" id="c${x.id}" placeholder="교사 피드백"><br><br><button class="btn secondary" onclick="saveFeedback(${x.id})">저장</button><p class="muted">${esc(x.teacher_comment || '')}</p></td></tr>`).join('')}</table>`;
+  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">루브릭 평가와 총평</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}</td><td><strong>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</strong><p class="muted">최근 저장: ${esc(x.updated_at || '-')}</p>${renderUpdateHistory(x.updates || [])}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><label class="field-label" for="c${x.id}">교사 총평</label><textarea class="teacher-comment" id="c${x.id}" placeholder="학생에게 보여줄 총평을 적어주세요."></textarea>${renderRubricForm(x.id)}<button class="btn secondary" onclick="saveFeedback(${x.id})">평가 저장</button>${renderDashboardFeedbackHistory(x.feedbacks || [])}</td></tr>`).join('')}</table>`;
 }
 
 function saveDashboardPdf() {
@@ -462,9 +438,10 @@ async function resetStudentData() {
 }
 
 async function saveFeedback(id) {
-  const comment = document.getElementById(`c${id}`).value.trim();
-  if (!comment) return alert('피드백 내용을 입력하세요.');
-  await post(`/api/projects/${id}/feedback`, { teacher_comment: comment });
-  alert('피드백이 저장되었습니다.');
+  const payload = { teacher_comment: valueOf(`c${id}`).trim() };
+  RUBRICS.forEach(([key]) => { payload[key] = numberOf(`r_${key}_${id}`); });
+  if (!payload.teacher_comment && rubricTotal(payload) === 0) return alert('총평을 입력하거나 루브릭 점수를 선택하세요.');
+  await post(`/api/projects/${id}/feedback`, payload);
+  alert('루브릭 평가와 총평이 저장되었습니다.');
   await loadDashboard();
 }
