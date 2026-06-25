@@ -2,10 +2,13 @@ let currentStudent = null;
 let selectedTag = '';
 let currentProjectId = null;
 let currentProgressNote = '';
+let currentWizardStep = 0;
 let lastDashboard = [];
 let teacherPassword = '';
 
 const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화','음식','동물','환경','패션','친구관계','스마트폰','진로','과학','로봇','AI','건강','여행','학교생활'];
+const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport'];
+const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90];
 
 window.onload = () => {
   const tagBox = document.getElementById('tags');
@@ -161,16 +164,51 @@ async function loadWizardProject(id) {
   document.getElementById('plan').value = p.plan || '';
   document.getElementById('log').value = p.research_log || '';
   document.getElementById('reportOutput').innerHTML = p.report ? `<pre>${esc(p.report)}</pre>` : '';
-  updateProgress(Number(p.progress || 30));
+  const progress = Number(p.progress || 30);
+  const step = progress >= 90 ? 5 : progress >= 80 ? 4 : progress >= 70 ? 3 : progress >= 60 ? 2 : progress >= 45 ? 1 : 0;
+  setWizardStep(step, progress);
+}
+
+function setWizardStep(step, progressOverride = null) {
+  currentWizardStep = Math.max(0, Math.min(WIZARD_PAGES.length - 1, step));
+  WIZARD_PAGES.forEach((id, index) => {
+    const page = document.getElementById(id);
+    if (page) page.classList.toggle('hidden', index !== currentWizardStep);
+  });
+  document.querySelectorAll('#wizardStepper span').forEach((item, index) => {
+    item.classList.toggle('active', index === currentWizardStep);
+    item.classList.toggle('done', index < currentWizardStep);
+  });
+  const prev = document.getElementById('prevWizardBtn');
+  const next = document.getElementById('nextWizardBtn');
+  if (prev) prev.disabled = currentWizardStep === 0;
+  if (next) next.innerText = currentWizardStep === WIZARD_PAGES.length - 1 ? '완료' : '다음';
+  updateProgress(progressOverride ?? WIZARD_PROGRESS[currentWizardStep]);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function nextWizardStep() {
+  await saveProject(WIZARD_PROGRESS[currentWizardStep], false);
+  if (currentWizardStep < WIZARD_PAGES.length - 1) {
+    setWizardStep(currentWizardStep + 1);
+  } else {
+    alert('탐구 마법사를 완료했습니다. 보고서 초안을 확인하고 필요한 내용을 수정해 주세요.');
+  }
+}
+
+async function prevWizardStep() {
+  await saveProject(WIZARD_PROGRESS[currentWizardStep], false);
+  setWizardStep(currentWizardStep - 1);
 }
 
 function autoProgress() {
-  let progress = 30;
-  if ((document.getElementById('plan')?.value || '').trim().length > 50) progress = 45;
-  if ((document.getElementById('guideOutput')?.innerText || '').trim().length > 20) progress = 55;
-  if ((document.getElementById('surveyOutput')?.innerText || '').trim().length > 20) progress = 65;
-  if ((document.getElementById('log')?.value || '').trim().length > 20) progress = 78;
-  if ((document.getElementById('reportOutput')?.innerText || '').trim().length > 20) progress = 90;
+  let progress = WIZARD_PROGRESS[currentWizardStep] || 30;
+  if ((document.getElementById('plan')?.value || '').trim().length > 50) progress = Math.max(progress, 45);
+  if ((document.getElementById('guideOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 55);
+  if ((document.getElementById('surveyOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 65);
+  if ((document.getElementById('interviewOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 75);
+  if ((document.getElementById('log')?.value || '').trim().length > 20) progress = Math.max(progress, 80);
+  if ((document.getElementById('reportOutput')?.innerText || '').trim().length > 20) progress = Math.max(progress, 90);
   updateProgress(progress);
   return progress;
 }
@@ -214,7 +252,7 @@ async function loadSurvey() {
 
 async function loadInterview() {
   const res = await (await fetch(`/api/projects/${currentProjectId}/interview`)).json();
-  document.getElementById('surveyOutput').innerHTML += `<div class="result"><h3>인터뷰 질문</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+  document.getElementById('interviewOutput').innerHTML = `<div class="result"><h3>인터뷰 질문</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
   await saveProject(autoProgress());
 }
 
@@ -222,6 +260,7 @@ async function makeReport() {
   await saveProject(80);
   const res = await post(`/api/projects/${currentProjectId}/report`, {});
   document.getElementById('reportOutput').innerHTML = `<pre>${esc(res.report)}</pre>`;
+  setWizardStep(5, 90);
   await saveProject(90);
 }
 
