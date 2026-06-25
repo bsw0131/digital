@@ -143,6 +143,14 @@ def fetch_project_dict(cur, project_id: int) -> dict:
     return dict(row) if row else {}
 
 
+def fetch_feedback_history(cur, project_id: int) -> list[dict]:
+    cur.execute(
+        "SELECT teacher_comment, created_at FROM feedback WHERE project_id=? AND teacher_comment<>'' ORDER BY id DESC",
+        (project_id,),
+    )
+    return [dict(row) for row in cur.fetchall()]
+
+
 @app.on_event("startup")
 def startup():
     init_db()
@@ -172,6 +180,8 @@ def student_projects(student_id: int):
     cur = conn.cursor()
     cur.execute("SELECT * FROM projects WHERE student_id=? ORDER BY updated_at DESC", (student_id,))
     rows = [dict(r) for r in cur.fetchall()]
+    for row in rows:
+        row["feedbacks"] = fetch_feedback_history(cur, row["id"])
     conn.close()
     return {"items": rows}
 
@@ -208,10 +218,13 @@ def get_project(project_id: int):
     cur = conn.cursor()
     cur.execute("SELECT * FROM projects WHERE id=?", (project_id,))
     row = cur.fetchone()
-    conn.close()
     if not row:
+        conn.close()
         raise HTTPException(404, "project not found")
-    return dict(row)
+    data = dict(row)
+    data["feedbacks"] = fetch_feedback_history(cur, project_id)
+    conn.close()
+    return data
 
 
 @app.put("/api/projects/{project_id}")
@@ -376,6 +389,7 @@ def dashboard():
                     "created_at": row.get("updated_at") or "저장 시간 기록 없음",
                 }
             ]
+        row["feedbacks"] = fetch_feedback_history(cur, row["id"])
     conn.close()
     return {"items": rows}
 
@@ -398,14 +412,15 @@ def reset_student_data(payload: dict):
 def save_feedback(project_id: int, req: FeedbackReq):
     conn = get_conn()
     cur = conn.cursor()
+    timestamp = now_label()
     cur.execute(
-        """INSERT INTO feedback(project_id, teacher_comment, problem_def, data_collection, analysis, communication)
-        VALUES(?,?,?,?,?,?)""",
-        (project_id, req.teacher_comment, req.problem_def, req.data_collection, req.analysis, req.communication),
+        """INSERT INTO feedback(project_id, teacher_comment, problem_def, data_collection, analysis, communication, created_at)
+        VALUES(?,?,?,?,?,?,?)""",
+        (project_id, req.teacher_comment, req.problem_def, req.data_collection, req.analysis, req.communication, timestamp),
     )
     conn.commit()
     conn.close()
-    return {"ok": True}
+    return {"ok": True, "created_at": timestamp}
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
