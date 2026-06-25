@@ -28,10 +28,12 @@ def recommend(tag: str, detail: str):
 
         client = OpenAI()
         prompt = f"""
-중학교 2학년 학생용 탐구활동 주제 10개를 추천하라.
+중학교 2학년 학생용 탐구활동 주제 20개를 추천하라.
 관심 태그: {tag}
 세부 관심사: {detail}
+관심 태그가 2개이면 두 관심사가 연결된 융합형 탐구 주제를 우선 추천하라.
 각 항목은 topic, subject, difficulty, inquiry_type, duration, reason, fit(data_collection, survey, experiment, school_application, total)를 가진 JSON 배열로만 출력하라.
+fit.total 점수가 높은 순서로 정렬하라.
 """
         res = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -41,7 +43,7 @@ def recommend(tag: str, detail: str):
         text = res.choices[0].message.content.strip().replace("```json", "").replace("```", "")
         items = json.loads(text)
         items.sort(key=lambda x: (x.get("fit") or {}).get("total", 0), reverse=True)
-        return {"mode": "online", "items": items}
+        return {"mode": "online", "items": items[:20]}
     except Exception:
         return {"mode": "offline", "items": recommend_topics(tag, detail)}
 
