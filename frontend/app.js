@@ -370,7 +370,45 @@ async function teacherLogin() {
   teacherPassword = password;
   document.getElementById('teacherLogin').classList.add('hidden');
   document.getElementById('dash').classList.remove('hidden');
+  document.getElementById('aiSettingsBox')?.classList.remove('hidden');
   await loadDashboard();
+  await loadAiSettings();
+}
+
+async function loadAiSettings() {
+  if (!teacherPassword) return;
+  const status = document.getElementById('aiSettingsStatus');
+  if (status) status.innerText = 'AI 설정을 불러오는 중입니다.';
+  const res = await post('/api/teacher/ai-settings', { password: teacherPassword });
+  if (res.detail) {
+    if (status) status.innerText = 'AI 설정을 불러오지 못했습니다.';
+    return;
+  }
+  setValue('aiModel', res.model || 'gpt-4o-mini');
+  const enabled = document.getElementById('onlineAiEnabled');
+  const clear = document.getElementById('clearAiKey');
+  const keyInput = document.getElementById('aiApiKey');
+  if (enabled) enabled.checked = !!res.online_ai_enabled;
+  if (clear) clear.checked = false;
+  if (keyInput) keyInput.value = '';
+  const keyHint = document.getElementById('aiKeyHint');
+  if (keyHint) keyHint.innerText = res.has_api_key ? `저장된 키: ${res.masked_api_key} (${res.key_source})` : '저장된 API 키가 없습니다.';
+  if (status) status.innerText = res.online_ai_enabled && res.has_api_key ? '온라인 AI 사용 중입니다.' : '오프라인 추천 엔진을 사용 중입니다.';
+}
+
+async function saveAiSettings() {
+  if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
+  const payload = {
+    password: teacherPassword,
+    online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked,
+    openai_api_key: valueOf('aiApiKey'),
+    clear_api_key: !!document.getElementById('clearAiKey')?.checked,
+    model: valueOf('aiModel') || 'gpt-4o-mini',
+  };
+  const res = await post('/api/teacher/ai-settings/save', payload);
+  if (!res.ok) return alert('AI 설정 저장에 실패했습니다.');
+  alert('AI 설정이 저장되었습니다.');
+  await loadAiSettings();
 }
 
 async function loadDashboard() {
