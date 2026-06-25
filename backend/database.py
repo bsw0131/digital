@@ -54,6 +54,7 @@ def init_db():
         research_log TEXT DEFAULT '',
         progress_note TEXT DEFAULT '',
         report TEXT DEFAULT '',
+        report_note TEXT DEFAULT '',
         progress INTEGER DEFAULT 10,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -78,5 +79,6 @@ def init_db():
     _add_column_if_missing(cur, "projects", "guide_note", "TEXT DEFAULT ''")
     _add_column_if_missing(cur, "projects", "survey_note", "TEXT DEFAULT ''")
     _add_column_if_missing(cur, "projects", "interview_note", "TEXT DEFAULT ''")
+    _add_column_if_missing(cur, "projects", "report_note", "TEXT DEFAULT ''")
     conn.commit()
     conn.close()
