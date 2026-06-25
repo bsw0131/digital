@@ -1,8 +1,10 @@
 import sqlite3
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
+APP_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else BASE_DIR
+DATA_DIR = APP_DIR / "data"
 DB_PATH = DATA_DIR / "inquiry_mate.db"
 
 
