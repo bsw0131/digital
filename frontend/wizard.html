@@ -35,6 +35,8 @@
         <h3>탐구계획서</h3>
         <p class="muted">탐구 동기, 탐구 문제, 방법, 일정을 확인하고 필요한 내용을 고쳐보세요.</p>
         <textarea id="plan"></textarea>
+        <label class="field-label" for="planNote">계획서 메모</label>
+        <textarea class="memo-box" id="planNote" placeholder="계획서를 보며 내가 정한 점, 고칠 점, 다음에 확인할 일을 적어보세요."></textarea>
       </section>
 
       <section class="wizard-page hidden" id="wizardGuide">
@@ -43,6 +45,8 @@
         <p class="muted">자료를 어디서 찾고 어떤 기준으로 정리할지 확인합니다.</p>
         <button class="btn secondary" onclick="loadGuide()">자료조사 가이드 생성</button>
         <div id="guideOutput" class="output"></div>
+        <label class="field-label" for="guideNote">자료조사 메모</label>
+        <textarea class="memo-box" id="guideNote" placeholder="찾아본 자료, 알게 된 점, 더 조사할 내용을 적어보세요."></textarea>
       </section>
 
       <section class="wizard-page hidden" id="wizardSurvey">
@@ -51,6 +55,8 @@
         <p class="muted">친구들에게 물어볼 설문 문항을 만들고 탐구에 맞게 수정합니다.</p>
         <button class="btn secondary" onclick="loadSurvey()">설문 문항 생성</button>
         <div id="surveyOutput" class="output"></div>
+        <label class="field-label" for="surveyNote">설문 메모</label>
+        <textarea class="memo-box" id="surveyNote" placeholder="설문에서 확인하고 싶은 내용, 수정할 문항, 응답을 받을 대상을 적어보세요."></textarea>
       </section>
 
       <section class="wizard-page hidden" id="wizardInterview">
@@ -59,13 +65,15 @@
         <p class="muted">깊이 있는 의견을 듣기 위한 인터뷰 질문을 준비합니다.</p>
         <button class="btn secondary" onclick="loadInterview()">인터뷰 질문 생성</button>
         <div id="interviewOutput" class="output"></div>
+        <label class="field-label" for="interviewNote">인터뷰 메모</label>
+        <textarea class="memo-box" id="interviewNote" placeholder="인터뷰 대상, 질문을 바꿀 부분, 들은 내용을 간단히 적어보세요."></textarea>
       </section>
 
       <section class="wizard-page hidden" id="wizardLog">
         <span class="step-label">5단계</span>
         <h3>탐구일지</h3>
         <p class="muted">오늘 한 활동, 알게 된 점, 어려웠던 점, 다음 계획을 적습니다.</p>
-        <textarea id="log" placeholder="오늘 한 활동, 알게 된 점, 다음에 할 일을 적어보세요."></textarea>
+        <textarea class="memo-box" id="log" placeholder="오늘 한 활동, 알게 된 점, 다음에 할 일을 적어보세요."></textarea>
       </section>
 
       <section class="wizard-page hidden" id="wizardReport">
