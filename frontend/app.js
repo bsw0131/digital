@@ -1,0 +1,201 @@
+let currentStudent = null;
+let selectedTag = '';
+let currentProjectId = null;
+let lastDashboard = [];
+
+const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화','음식','동물','환경','패션','친구관계','스마트폰','진로','과학','로봇','AI','건강','여행','학교생활'];
+
+window.onload = () => {
+  const tagBox = document.getElementById('tags');
+  if (tagBox) {
+    tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
+  }
+  initWizardPage();
+};
+
+function selectTag(el, tag) {
+  document.querySelectorAll('.tag').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  selectedTag = tag;
+}
+
+async function post(url, data) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  return res.json();
+}
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+}
+
+function clamp(value) {
+  return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
+}
+
+function bar(label, value) {
+  value = clamp(value);
+  return `<p><b>${esc(label)}</b> ${value}점</p><div class="bar"><span style="width:${value}%"></span></div>`;
+}
+
+async function login() {
+  const name = document.getElementById('name').value.trim();
+  const student_no = document.getElementById('studentNo').value.trim();
+  if (!name || !student_no) return alert('이름과 학번을 입력하세요.');
+  currentStudent = await post('/api/student/login', { name, student_no });
+  document.getElementById('loginBox').classList.add('hidden');
+  document.getElementById('interestBox').classList.remove('hidden');
+  await loadMyProjects();
+}
+
+async function loadMyProjects() {
+  const res = await (await fetch(`/api/student/${currentStudent.id}/projects`)).json();
+  if (!res.items.length) return;
+  document.getElementById('myProjectsBox').classList.remove('hidden');
+  document.getElementById('myProjects').innerHTML = res.items.map(p => `
+    <div class="topic">
+      <h3>${esc(p.topic)}</h3>
+      <p class="muted">진행률 ${p.progress}% · 적합도 ${p.fit_score}점</p>
+      <div class="bar"><span style="width:${clamp(p.progress)}%"></span></div><br>
+      <button class="btn secondary" onclick="openProject(${p.id})">이어하기</button>
+    </div>`).join('');
+}
+
+function openProject(id) {
+  window.location.href = `wizard.html?project_id=${id}`;
+}
+
+async function recommend() {
+  if (!selectedTag) return alert('태그를 선택하세요.');
+  const detail = document.getElementById('detail').value;
+  const res = await post('/api/recommend', { tag: selectedTag, detail });
+  const items = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0));
+  document.getElementById('recommendBox').classList.remove('hidden');
+  document.getElementById('modeText').innerText = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
+  document.getElementById('topics').innerHTML = items.map(it => {
+    const fit = it.fit || {};
+    return `<div class="topic">
+      <h3>${esc(it.topic)}</h3>
+      <p><b>교과</b> ${esc(it.subject)} · <b>난이도</b> ${esc(it.difficulty)} · <b>유형</b> ${esc(it.inquiry_type)} · <b>기간</b> ${esc(it.duration)}</p>
+      <p class="muted">${esc(it.reason)}</p>
+      <div class="score">${fit.total || 70}점</div>
+      <div class="bar"><span style="width:${clamp(fit.total || 70)}%"></span></div>
+      <div class="fit-grid"><span>자료 ${fit.data_collection || '-'}</span><span>설문 ${fit.survey || '-'}</span><span>실험 ${fit.experiment || '-'}</span><span>학교 ${fit.school_application || '-'}</span></div>
+      <button class="btn" onclick='startProject(${JSON.stringify(it).replace(/'/g, "&#39;")})'>이 주제로 시작</button>
+    </div>`;
+  }).join('');
+}
+
+async function startProject(item) {
+  const fit = item.fit || {};
+  const res = await post('/api/projects', {
+    student_id: currentStudent.id,
+    tag: selectedTag,
+    interest: document.getElementById('detail').value,
+    topic: item.topic,
+    subject: item.subject || '',
+    fit_score: fit.total || 70,
+  });
+  window.location.href = `wizard.html?project_id=${res.project_id}`;
+}
+
+async function initWizardPage() {
+  const box = document.getElementById('projectBox');
+  if (!box) return;
+  const id = new URLSearchParams(location.search).get('project_id');
+  if (!id) {
+    box.innerHTML = '<h2>프로젝트를 찾을 수 없습니다.</h2><p class="muted">학생 탐구실에서 주제를 선택하세요.</p><a class="btn" href="student.html">학생 탐구실로 이동</a>';
+    return;
+  }
+  await loadWizardProject(id);
+}
+
+async function loadWizardProject(id) {
+  const p = await (await fetch(`/api/projects/${id}`)).json();
+  currentProjectId = p.id;
+  document.getElementById('projectTopic').innerText = p.topic;
+  document.getElementById('plan').value = p.plan || '';
+  document.getElementById('log').value = p.research_log || '';
+  document.getElementById('reportOutput').innerHTML = p.report ? `<pre>${esc(p.report)}</pre>` : '';
+  updateProgress(Number(p.progress || 30));
+}
+
+function autoProgress() {
+  let progress = 30;
+  if ((document.getElementById('plan')?.value || '').trim().length > 50) progress = 45;
+  if ((document.getElementById('guideOutput')?.innerText || '').trim().length > 20) progress = 55;
+  if ((document.getElementById('surveyOutput')?.innerText || '').trim().length > 20) progress = 65;
+  if ((document.getElementById('log')?.value || '').trim().length > 20) progress = 78;
+  if ((document.getElementById('reportOutput')?.innerText || '').trim().length > 20) progress = 90;
+  updateProgress(progress);
+  return progress;
+}
+
+function updateProgress(progress) {
+  progress = clamp(progress);
+  const text = document.getElementById('progressText');
+  const barEl = document.getElementById('progressBar');
+  if (text) text.innerText = `진행률 ${progress}%`;
+  if (barEl) barEl.style.width = `${progress}%`;
+}
+
+async function saveProject(progress = autoProgress(), showAlert = false) {
+  if (!currentProjectId) return;
+  await fetch(`/api/projects/${currentProjectId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan: document.getElementById('plan').value,
+      research_log: document.getElementById('log').value,
+      report: document.getElementById('reportOutput').innerText,
+      progress,
+    }),
+  });
+  updateProgress(progress);
+  if (showAlert) alert('저장되었습니다.');
+}
+
+async function loadGuide() {
+  const res = await (await fetch(`/api/projects/${currentProjectId}/guide`)).json();
+  document.getElementById('guideOutput').innerHTML = `<div class="result"><h3>자료조사 가이드</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+  await saveProject(autoProgress());
+}
+
+async function loadSurvey() {
+  const res = await (await fetch(`/api/projects/${currentProjectId}/survey`)).json();
+  document.getElementById('surveyOutput').innerHTML = `<div class="result"><h3>설문 문항</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+  await saveProject(autoProgress());
+}
+
+async function loadInterview() {
+  const res = await (await fetch(`/api/projects/${currentProjectId}/interview`)).json();
+  document.getElementById('surveyOutput').innerHTML += `<div class="result"><h3>인터뷰 질문</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+  await saveProject(autoProgress());
+}
+
+async function makeReport() {
+  await saveProject(80);
+  const res = await post(`/api/projects/${currentProjectId}/report`, {});
+  document.getElementById('reportOutput').innerHTML = `<pre>${esc(res.report)}</pre>`;
+  await saveProject(90);
+}
+
+async function teacherLogin() {
+  const password = document.getElementById('teacherPw').value;
+  const res = await post('/api/teacher/login', { password });
+  if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
+  document.getElementById('teacherLogin').classList.add('hidden');
+  document.getElementById('dash').classList.remove('hidden');
+  await loadDashboard();
+}
+
+async function loadDashboard() {
+  const res = await (await fetch('/api/teacher/dashboard')).json();
+  lastDashboard = res.items || [];
+  document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>적합도</th><th>진행률</th><th>피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}<br><span class="pill">${esc(x.subject || '')}</span></td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td><input class="input" id="c${x.id}" placeholder="교사 피드백"><br><br><button class="btn secondary" onclick="saveFeedback(${x.id})">저장</button><p class="muted">${esc(x.teacher_comment || '')}</p></td></tr>`).join('')}</table>`;
+}
+
+async function saveFeedback(id) {
+  await post(`/api/projects/${id}/feedback`, { teacher_comment: document.getElementById(`c${id}`).value });
+  alert('피드백이 저장되었습니다.');
+  await loadDashboard();
+}
