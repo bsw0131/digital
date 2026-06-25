@@ -380,18 +380,17 @@ async function saveAiSettings() {
 function renderUpdateHistory(updates = []) {
   if (!updates.length) return '<p class="muted">아직 저장 이력이 없습니다.</p>';
   const latest = updates[0];
-  const allItems = updates.map(u => `<div class="update-item"><b>${esc(u.created_at || '')}</b><p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(u.changed_text || '')}</small></div>`).join('');
-  if (updates.length === 1) return `<div class="update-list">${allItems}</div>`;
+  const updateItem = u => `<div class="update-item"><b>${esc(u.created_at || '')}</b><p>${esc(u.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(u.changed_text || '')}</small></div>`;
+  if (updates.length === 1) return `<div class="update-list">${updateItem(latest)}</div>`;
+  const olderItems = updates.slice(1).map(updateItem).join('');
   return `<details class="update-history">
     <summary>
       <span>저장 이력 ${updates.length}개 전체 보기</span>
       <span class="history-arrow">▾</span>
+      <div class="update-list latest-update">${updateItem(latest)}</div>
     </summary>
-    <div class="update-list all-updates">${allItems}</div>
-  </details>
-  <div class="update-list latest-update">
-    <div class="update-item"><b>${esc(latest.created_at || '')}</b><p>${esc(latest.summary || '저장된 진행 내용이 있습니다.')}</p><small>${esc(latest.changed_text || '')}</small></div>
-  </div>`;
+    <div class="update-list all-updates">${olderItems}</div>
+  </details>`;
 }
 
 function renderDashboardFeedbackHistory(feedbacks = []) {
