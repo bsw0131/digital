@@ -7,34 +7,79 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="wrap">
+  <main class="wrap wizard-wrap">
     <div class="topbar"><a href="student.html">학생 탐구실로</a><span class="badge">Wizard</span></div>
     <h1>탐구 마법사</h1>
 
     <section class="card" id="projectBox">
       <div class="section-title">
-        <div><h2 id="projectTopic">탐구 주제</h2><p class="muted" id="progressText">진행률 30%</p></div>
-        <button class="btn secondary" onclick="saveProject(autoProgress(), true)">저장</button>
+        <div>
+          <h2 id="projectTopic">탐구 주제</h2>
+          <p class="muted" id="progressText">진행률 30%</p>
+        </div>
+        <button class="btn secondary" onclick="saveProject(autoProgress(), true)">현재 단계 저장</button>
       </div>
       <div class="bar big"><span id="progressBar" style="width:30%"></span></div>
 
-      <h3>탐구계획서</h3>
-      <textarea id="plan"></textarea>
-
-      <div class="row tools">
-        <button class="btn secondary" onclick="loadGuide()">자료조사 가이드</button>
-        <button class="btn secondary" onclick="loadSurvey()">설문 문항</button>
-        <button class="btn secondary" onclick="loadInterview()">인터뷰 질문</button>
-        <button class="btn" onclick="makeReport()">보고서 초안 생성</button>
+      <div class="wizard-stepper" id="wizardStepper">
+        <span class="active">계획서</span>
+        <span>자료조사</span>
+        <span>설문</span>
+        <span>인터뷰</span>
+        <span>탐구일지</span>
+        <span>보고서</span>
       </div>
-      <div id="guideOutput" class="output"></div>
-      <div id="surveyOutput" class="output"></div>
 
-      <h3>탐구일지</h3>
-      <textarea id="log" placeholder="오늘 한 활동, 알게 된 점, 다음에 할 일을 적어보세요."></textarea>
+      <section class="wizard-page" id="wizardPlan">
+        <span class="step-label">1단계</span>
+        <h3>탐구계획서</h3>
+        <p class="muted">탐구 동기, 탐구 문제, 방법, 일정을 확인하고 필요한 내용을 고쳐보세요.</p>
+        <textarea id="plan"></textarea>
+      </section>
 
-      <h3>보고서</h3>
-      <div id="reportOutput" class="output"></div>
+      <section class="wizard-page hidden" id="wizardGuide">
+        <span class="step-label">2단계</span>
+        <h3>자료조사 가이드</h3>
+        <p class="muted">자료를 어디서 찾고 어떤 기준으로 정리할지 확인합니다.</p>
+        <button class="btn secondary" onclick="loadGuide()">자료조사 가이드 생성</button>
+        <div id="guideOutput" class="output"></div>
+      </section>
+
+      <section class="wizard-page hidden" id="wizardSurvey">
+        <span class="step-label">3단계</span>
+        <h3>설문 문항</h3>
+        <p class="muted">친구들에게 물어볼 설문 문항을 만들고 탐구에 맞게 수정합니다.</p>
+        <button class="btn secondary" onclick="loadSurvey()">설문 문항 생성</button>
+        <div id="surveyOutput" class="output"></div>
+      </section>
+
+      <section class="wizard-page hidden" id="wizardInterview">
+        <span class="step-label">4단계</span>
+        <h3>인터뷰 질문</h3>
+        <p class="muted">깊이 있는 의견을 듣기 위한 인터뷰 질문을 준비합니다.</p>
+        <button class="btn secondary" onclick="loadInterview()">인터뷰 질문 생성</button>
+        <div id="interviewOutput" class="output"></div>
+      </section>
+
+      <section class="wizard-page hidden" id="wizardLog">
+        <span class="step-label">5단계</span>
+        <h3>탐구일지</h3>
+        <p class="muted">오늘 한 활동, 알게 된 점, 어려웠던 점, 다음 계획을 적습니다.</p>
+        <textarea id="log" placeholder="오늘 한 활동, 알게 된 점, 다음에 할 일을 적어보세요."></textarea>
+      </section>
+
+      <section class="wizard-page hidden" id="wizardReport">
+        <span class="step-label">6단계</span>
+        <h3>보고서 초안</h3>
+        <p class="muted">계획서와 탐구일지를 바탕으로 보고서 초안을 생성합니다.</p>
+        <button class="btn" onclick="makeReport()">보고서 초안 생성</button>
+        <div id="reportOutput" class="output"></div>
+      </section>
+
+      <div class="wizard-nav">
+        <button class="btn secondary" id="prevWizardBtn" onclick="prevWizardStep()">이전</button>
+        <button class="btn" id="nextWizardBtn" onclick="nextWizardStep()">다음</button>
+      </div>
     </section>
   </main>
   <script src="app.js"></script>
