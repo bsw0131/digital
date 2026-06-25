@@ -113,6 +113,18 @@ async function login() {
   await loadMyProjects();
 }
 
+function renderFeedbackHistory(feedbacks = []) {
+  if (!feedbacks.length) return '';
+  return `<div class="feedback-box">
+    <h4>교사 피드백</h4>
+    <div class="feedback-list">${feedbacks.map(f => `
+      <div class="feedback-item">
+        <b>${esc(f.created_at || '')}</b>
+        <p>${esc(f.teacher_comment || '')}</p>
+      </div>`).join('')}</div>
+  </div>`;
+}
+
 async function loadMyProjects() {
   const res = await (await fetch(`/api/student/${currentStudent.id}/projects`)).json();
   if (!res.items.length) return;
@@ -122,6 +134,7 @@ async function loadMyProjects() {
       <h3>${esc(p.topic)}</h3>
       <p class="muted">진행률 ${p.progress}% · 적합도 ${p.fit_score}점</p>
       <div class="bar"><span style="width:${clamp(p.progress)}%"></span></div>
+      ${renderFeedbackHistory(p.feedbacks || [])}
       <label class="field-label" for="note${p.id}">진행 상황</label>
       <textarea class="progress-note" id="note${p.id}" placeholder="오늘 진행한 내용, 어려운 점, 다음 계획을 적어보세요.">${esc(p.progress_note || '')}</textarea>
       <div class="row">
@@ -254,12 +267,14 @@ function setWizardStep(step, progressOverride = null) {
 }
 
 async function nextWizardStep() {
-  await saveProject(WIZARD_PROGRESS[currentWizardStep], false);
   if (currentWizardStep < WIZARD_PAGES.length - 1) {
+    await saveProject(WIZARD_PROGRESS[currentWizardStep], false);
     setWizardStep(currentWizardStep + 1);
-  } else {
-    alert('탐구 마법사를 완료했습니다. PDF로 저장하려면 인쇄 창에서 프린터를 PDF 저장으로 선택하세요.');
+    return;
   }
+  await saveProject(100, false);
+  renderPrintSummary();
+  alert('완료 내용이 저장되었습니다. PDF로 저장하려면 인쇄 창에서 프린터를 PDF 저장으로 선택하세요.');
 }
 
 async function prevWizardStep() {
@@ -289,8 +304,8 @@ function updateProgress(progress) {
 }
 
 async function saveProject(progress = autoProgress(), showAlert = false) {
-  if (!currentProjectId) return;
-  await fetch(`/api/projects/${currentProjectId}`, {
+  if (!currentProjectId) return null;
+  const res = await fetch(`/api/projects/${currentProjectId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -306,8 +321,13 @@ async function saveProject(progress = autoProgress(), showAlert = false) {
       progress,
     }),
   });
+  if (!res.ok) {
+    alert('저장에 실패했습니다. 잠시 후 다시 시도하세요.');
+    throw new Error('project save failed');
+  }
   updateProgress(progress);
   if (showAlert) alert('저장되었습니다.');
+  return res.json();
 }
 
 async function loadGuide() {
@@ -442,7 +462,9 @@ async function resetStudentData() {
 }
 
 async function saveFeedback(id) {
-  await post(`/api/projects/${id}/feedback`, { teacher_comment: document.getElementById(`c${id}`).value });
+  const comment = document.getElementById(`c${id}`).value.trim();
+  if (!comment) return alert('피드백 내용을 입력하세요.');
+  await post(`/api/projects/${id}/feedback`, { teacher_comment: comment });
   alert('피드백이 저장되었습니다.');
   await loadDashboard();
 }
