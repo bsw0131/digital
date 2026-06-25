@@ -47,6 +47,10 @@ def init_db():
         subject TEXT,
         fit_score INTEGER DEFAULT 0,
         plan TEXT DEFAULT '',
+        plan_note TEXT DEFAULT '',
+        guide_note TEXT DEFAULT '',
+        survey_note TEXT DEFAULT '',
+        interview_note TEXT DEFAULT '',
         research_log TEXT DEFAULT '',
         progress_note TEXT DEFAULT '',
         report TEXT DEFAULT '',
@@ -70,5 +74,9 @@ def init_db():
     )
     """)
     _add_column_if_missing(cur, "projects", "progress_note", "TEXT DEFAULT ''")
+    _add_column_if_missing(cur, "projects", "plan_note", "TEXT DEFAULT ''")
+    _add_column_if_missing(cur, "projects", "guide_note", "TEXT DEFAULT ''")
+    _add_column_if_missing(cur, "projects", "survey_note", "TEXT DEFAULT ''")
+    _add_column_if_missing(cur, "projects", "interview_note", "TEXT DEFAULT ''")
     conn.commit()
     conn.close()
