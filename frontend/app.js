@@ -1,6 +1,7 @@
 let currentStudent = null;
 let selectedTag = '';
 let currentProjectId = null;
+let currentProgressNote = '';
 let lastDashboard = [];
 let teacherPassword = '';
 
@@ -27,7 +28,7 @@ async function post(url, data) {
 }
 
 function esc(value) {
-  return String(value ?? '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch] }));
+  return String(value ?? '').replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 }
 
 function clamp(value) {
@@ -155,6 +156,7 @@ async function initWizardPage() {
 async function loadWizardProject(id) {
   const p = await (await fetch(`/api/projects/${id}`)).json();
   currentProjectId = p.id;
+  currentProgressNote = p.progress_note || '';
   document.getElementById('projectTopic').innerText = p.topic;
   document.getElementById('plan').value = p.plan || '';
   document.getElementById('log').value = p.research_log || '';
@@ -189,7 +191,7 @@ async function saveProject(progress = autoProgress(), showAlert = false) {
     body: JSON.stringify({
       plan: document.getElementById('plan').value,
       research_log: document.getElementById('log').value,
-      progress_note: '',
+      progress_note: currentProgressNote,
       report: document.getElementById('reportOutput').innerText,
       progress,
     }),
