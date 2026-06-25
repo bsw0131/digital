@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 import ai_engine
 from database import get_conn, init_db
+from settings_store import get_ai_settings_public, save_ai_settings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
@@ -54,12 +55,29 @@ class ProgressNoteReq(BaseModel):
     progress_note: str = ""
 
 
+class AiSettingsReq(BaseModel):
+    password: str = ""
+    online_ai_enabled: bool = False
+    openai_api_key: str = ""
+    clear_api_key: bool = False
+    model: str = "gpt-4o-mini"
+
+
+class TeacherAuthReq(BaseModel):
+    password: str = ""
+
+
 class FeedbackReq(BaseModel):
     teacher_comment: str = ""
     problem_def: int = 0
     data_collection: int = 0
     analysis: int = 0
     communication: int = 0
+
+
+def require_teacher(password: str):
+    if password != TEACHER_PASSWORD:
+        raise HTTPException(403, "invalid teacher password")
 
 
 @app.on_event("startup")
@@ -216,6 +234,19 @@ def teacher_login(payload: dict):
     return {"ok": payload.get("password") == TEACHER_PASSWORD}
 
 
+@app.post("/api/teacher/ai-settings")
+def get_ai_settings(req: TeacherAuthReq):
+    require_teacher(req.password)
+    return get_ai_settings_public()
+
+
+@app.post("/api/teacher/ai-settings/save")
+def save_teacher_ai_settings(req: AiSettingsReq):
+    require_teacher(req.password)
+    settings = save_ai_settings(req.online_ai_enabled, req.openai_api_key, req.clear_api_key, req.model)
+    return {"ok": True, "settings": settings}
+
+
 @app.get("/api/teacher/dashboard")
 def dashboard():
     conn = get_conn()
@@ -232,8 +263,7 @@ def dashboard():
 
 @app.post("/api/teacher/reset")
 def reset_student_data(payload: dict):
-    if payload.get("password") != TEACHER_PASSWORD:
-        raise HTTPException(403, "invalid teacher password")
+    require_teacher(payload.get("password"))
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("DELETE FROM feedback")
