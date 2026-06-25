@@ -39,6 +39,10 @@ class ProjectReq(BaseModel):
 
 class UpdateProjectReq(BaseModel):
     plan: str = ""
+    plan_note: str = ""
+    guide_note: str = ""
+    survey_note: str = ""
+    interview_note: str = ""
     research_log: str = ""
     progress_note: str = ""
     report: str = ""
@@ -128,8 +132,19 @@ def update_project(project_id: int, req: UpdateProjectReq):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        """UPDATE projects SET plan=?, research_log=?, progress_note=?, report=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
-        (req.plan, req.research_log, req.progress_note, req.report, req.progress, project_id),
+        """UPDATE projects SET plan=?, plan_note=?, guide_note=?, survey_note=?, interview_note=?, research_log=?, progress_note=?, report=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+        (
+            req.plan,
+            req.plan_note,
+            req.guide_note,
+            req.survey_note,
+            req.interview_note,
+            req.research_log,
+            req.progress_note,
+            req.report,
+            req.progress,
+            project_id,
+        ),
     )
     conn.commit()
     conn.close()
@@ -173,7 +188,18 @@ def get_interview(project_id: int):
 @app.post("/api/projects/{project_id}/report")
 def generate_report(project_id: int):
     project = get_project(project_id)
-    report = ai_engine.report(project["topic"], project.get("plan", ""), project.get("research_log", ""))
+    memo_text = "\n\n".join(
+        text
+        for text in [
+            project.get("plan_note", ""),
+            project.get("guide_note", ""),
+            project.get("survey_note", ""),
+            project.get("interview_note", ""),
+            project.get("research_log", ""),
+        ]
+        if text
+    )
+    report = ai_engine.report(project["topic"], project.get("plan", ""), memo_text)
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("UPDATE projects SET report=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", (report, 90, project_id))
