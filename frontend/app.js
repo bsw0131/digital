@@ -31,11 +31,24 @@ function selectTag(el, tag) {
     return;
   }
   if (selectedTags.length >= 2) {
-    alert('관심사는 최대 2개까지 선택할 수 있습니다.');
+    alert('버튼 관심사는 최대 2개까지 선택할 수 있습니다.');
     return;
   }
   selectedTags.push(tag);
   el.classList.add('active');
+}
+
+function getInterestQuery() {
+  const detail = valueOf('detail').trim();
+  const tagText = selectedTags.join(' + ');
+  const parts = [];
+  if (detail) parts.push(`직접 입력: ${detail}`);
+  if (tagText) parts.push(`버튼 선택: ${tagText}`);
+  return {
+    detail,
+    tagText,
+    queryText: parts.join(' + '),
+  };
 }
 
 async function post(url, data) {
@@ -134,9 +147,8 @@ function openProject(id) {
 }
 
 async function recommend() {
-  if (!selectedTags.length) return alert('관심사를 1개 이상 선택하세요.');
-  const detail = valueOf('detail');
-  const tagText = selectedTags.join(' + ');
+  const { detail, tagText, queryText } = getInterestQuery();
+  if (!detail && !tagText) return alert('버튼 관심사를 선택하거나 직접 관심사를 입력하세요.');
   const res = await post('/api/recommend', { tag: tagText, detail });
   recommendedItems = (res.items || [])
     .sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0))
@@ -144,7 +156,7 @@ async function recommend() {
   recommendationPage = 0;
   document.getElementById('recommendBox').classList.remove('hidden');
   const mode = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
-  document.getElementById('modeText').innerText = `${mode} ${tagText} 관심사를 기준으로 점수가 높은 순서대로 5개씩 보여줍니다.`;
+  document.getElementById('modeText').innerText = `${mode} ${queryText} 기준으로 관련 주제를 점수가 높은 순서대로 5개씩 보여줍니다.`;
   renderRecommendations();
 }
 
@@ -181,10 +193,11 @@ function showRecommendationPage(direction) {
 
 async function startProject(item) {
   const fit = item.fit || {};
+  const { detail, tagText } = getInterestQuery();
   const res = await post('/api/projects', {
     student_id: currentStudent.id,
-    tag: selectedTags.join(' + '),
-    interest: valueOf('detail'),
+    tag: tagText,
+    interest: detail,
     topic: item.topic,
     subject: item.subject || '',
     fit_score: fit.total || 70,
