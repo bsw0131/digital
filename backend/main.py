@@ -38,8 +38,13 @@ class ProjectReq(BaseModel):
 class UpdateProjectReq(BaseModel):
     plan: str = ""
     research_log: str = ""
+    progress_note: str = ""
     report: str = ""
     progress: int = 10
+
+
+class ProgressNoteReq(BaseModel):
+    progress_note: str = ""
 
 
 class FeedbackReq(BaseModel):
@@ -121,9 +126,25 @@ def update_project(project_id: int, req: UpdateProjectReq):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        """UPDATE projects SET plan=?, research_log=?, report=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
-        (req.plan, req.research_log, req.report, req.progress, project_id),
+        """UPDATE projects SET plan=?, research_log=?, progress_note=?, report=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+        (req.plan, req.research_log, req.progress_note, req.report, req.progress, project_id),
     )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@app.put("/api/projects/{project_id}/progress-note")
+def update_progress_note(project_id: int, req: ProgressNoteReq):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE projects SET progress_note=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        (req.progress_note, project_id),
+    )
+    if cur.rowcount == 0:
+        conn.close()
+        raise HTTPException(404, "project not found")
     conn.commit()
     conn.close()
     return {"ok": True}
@@ -176,6 +197,20 @@ def dashboard():
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return {"items": rows}
+
+
+@app.post("/api/teacher/reset")
+def reset_student_data(payload: dict):
+    if payload.get("password") != TEACHER_PASSWORD:
+        raise HTTPException(403, "invalid teacher password")
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM feedback")
+    cur.execute("DELETE FROM projects")
+    cur.execute("DELETE FROM students")
+    conn.commit()
+    conn.close()
+    return {"ok": True}
 
 
 @app.post("/api/projects/{project_id}/feedback")
