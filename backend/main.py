@@ -46,6 +46,7 @@ class UpdateProjectReq(BaseModel):
     research_log: str = ""
     progress_note: str = ""
     report: str = ""
+    report_note: str = ""
     progress: int = 10
 
 
@@ -132,7 +133,7 @@ def update_project(project_id: int, req: UpdateProjectReq):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        """UPDATE projects SET plan=?, plan_note=?, guide_note=?, survey_note=?, interview_note=?, research_log=?, progress_note=?, report=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+        """UPDATE projects SET plan=?, plan_note=?, guide_note=?, survey_note=?, interview_note=?, research_log=?, progress_note=?, report=?, report_note=?, progress=?, updated_at=CURRENT_TIMESTAMP WHERE id=?""",
         (
             req.plan,
             req.plan_note,
@@ -142,6 +143,7 @@ def update_project(project_id: int, req: UpdateProjectReq):
             req.research_log,
             req.progress_note,
             req.report,
+            req.report_note,
             req.progress,
             project_id,
         ),
@@ -196,6 +198,7 @@ def generate_report(project_id: int):
             project.get("survey_note", ""),
             project.get("interview_note", ""),
             project.get("research_log", ""),
+            project.get("report_note", ""),
         ]
         if text
     )
