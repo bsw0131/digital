@@ -654,6 +654,12 @@ def _single_interest_topics(info: dict) -> list[dict]:
         _make_topic(f"{d}에서 학생들이 중요하게 보는 {f} 요인 비교", subject, "비교", 3, reason, 5),
         _make_topic(f"학교에서 {n} 관심을 활용한 작은 활동 또는 캠페인 제안", "진로", "개선", 4, reason, 4),
         _make_topic(f"{n} 관련 자료와 학생 설문을 바탕으로 한 인식 차이 분석", "사회", "자료", 4, reason, 3),
+        _make_topic(f"{n}을 자주 접하는 학생과 그렇지 않은 학생의 생활 습관 비교", "사회", "비교", 3, reason, 4),
+        _make_topic(f"{n} 활동에서 학생들이 느끼는 장점과 걱정 요인 분석", subject, "영향", 3, reason, 4),
+        _make_topic(f"{n} 관심을 학습이나 진로 탐색과 연결하는 방법 제안", "진로", "개선", 4, reason, 3),
+        _make_topic(f"{n} 관련 온라인 정보의 신뢰도와 학생 판단 기준 탐구", "정보", "윤리", 4, reason, 3),
+        _make_topic(f"{n}에 대한 친구들의 경험을 인터뷰로 분석하기", "국어", "비교", 3, reason, 2),
+        _make_topic(f"{n} 관심이 스트레스 해소와 집중에 주는 도움과 한계", "보건", "영향", 3, reason, 2),
     ]
 
 
@@ -697,6 +703,12 @@ def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
     topics.extend([
         _make_topic(f"학교에서 {pair} 관심을 함께 살린 탐구 활동 설계", "진로", "개선", 4, reason, 5),
         _make_topic(f"{pair} 관련 학생 경험을 설문과 인터뷰로 비교 분석하기", "사회", "비교", 3, reason, 4),
+        _make_topic(f"{pair} 관심이 학습 동기와 여가 시간 사용에 미치는 영향", "사회", "영향", 3, reason, 4),
+        _make_topic(f"{pair} 관심 주제를 자주 접하는 학생과 그렇지 않은 학생의 인식 차이 비교", "사회", "비교", 3, reason, 4),
+        _make_topic(f"{pair} 관련 온라인 정보의 신뢰도와 학생 판단 기준 탐구", "정보", "윤리", 4, reason, 3),
+        _make_topic(f"{pair} 경험을 바탕으로 한 학교 안내자료 또는 체크리스트 만들기", "국어", "개선", 3, reason, 3),
+        _make_topic(f"{pair} 관심이 스트레스 해소와 자기관리 습관에 주는 영향", "보건", "영향", 3, reason, 2),
+        _make_topic(f"{pair}에 대한 학생 인터뷰를 통해 발견한 공통 경험과 차이 분석", "국어", "비교", 3, reason, 2),
     ])
     return topics
 
