@@ -1,14 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
 
-ROOT = Path.cwd()
-PACKAGE_DIR = ROOT / "AI탐구메이트_제출용패키지"
+PACKAGE_DIR = Path(SPECPATH).resolve()
+ROOT = PACKAGE_DIR.parent
 
 hiddenimports = [
     "ai_engine",
     "database",
     "offline_engine",
+    "settings_store",
     "main",
+    "h11",
     "uvicorn.logging",
     "uvicorn.loops",
     "uvicorn.loops.auto",
@@ -23,7 +25,7 @@ hiddenimports = [
 
 a = Analysis(
     [str(PACKAGE_DIR / "launcher.py")],
-    pathex=[str(ROOT), str(ROOT / "backend")],
+    pathex=[str(ROOT / "backend")],
     binaries=[],
     datas=[
         (str(ROOT / "frontend"), "frontend"),
@@ -33,7 +35,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=["pytest", "IPython", "jupyter"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)
