@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 설정 - AI 탐구메이트</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="rubric.css">
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar"><a href="teacher.html">교사 대시보드</a><span class="badge">AI Settings</span></div>
+    <h1>AI 설정</h1>
+
+    <section class="card" id="aiSettingsLogin">
+      <h2>교사 확인</h2>
+      <div class="row">
+        <input class="input" id="aiSettingsPw" type="password" placeholder="교사 비밀번호">
+        <button class="btn" onclick="aiSettingsLogin()">확인</button>
+      </div>
+      <p class="muted">교사 대시보드에서 로그인한 경우 자동으로 설정을 불러옵니다.</p>
+    </section>
+
+    <section class="card hidden" id="aiSettingsBox">
+      <div class="section-title">
+        <div>
+          <h2>AI 설정</h2>
+          <p class="muted" id="aiSettingsStatus">설정을 불러오는 중입니다.</p>
+        </div>
+        <button class="btn secondary" onclick="loadAiSettings()">설정 새로고침</button>
+      </div>
+
+      <div class="settings-grid">
+        <div>
+          <label class="toggle-row">
+            <input type="checkbox" id="onlineAiEnabled">
+            <span>온라인 AI 사용</span>
+          </label>
+
+          <label class="field-label" for="aiApiKey">OpenAI API 키</label>
+          <input class="input" id="aiApiKey" type="password" placeholder="sk-... 새 키를 입력하면 저장됩니다.">
+          <p class="muted" id="aiKeyHint">저장된 키는 학생 화면에 보이지 않습니다.</p>
+
+          <label class="field-label" for="aiModel">AI 모델</label>
+          <input class="input" id="aiModel" value="gpt-4o-mini">
+
+          <label class="toggle-row small-toggle">
+            <input type="checkbox" id="clearAiKey">
+            <span>저장된 API 키 삭제</span>
+          </label>
+
+          <div class="row tools">
+            <button class="btn" onclick="saveAiSettings()">AI 설정 저장</button>
+          </div>
+        </div>
+
+        <aside class="help-panel">
+          <h3>설정 방법</h3>
+          <ol>
+            <li>OpenAI 플랫폼에서 API 키를 만듭니다.</li>
+            <li>이 칸에 API 키를 붙여넣습니다.</li>
+            <li>온라인 AI 사용을 켭니다.</li>
+            <li>AI 설정 저장을 누릅니다.</li>
+            <li>학생이 주제를 추천받으면 온라인 AI가 먼저 작동합니다.</li>
+          </ol>
+          <p class="muted">인터넷이 안 되거나 키가 없으면 자동으로 오프라인 추천 엔진을 사용합니다.</p>
+          <p class="muted">API 키는 이 PC의 data/settings.json에만 저장됩니다. GitHub에는 올리지 마세요.</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

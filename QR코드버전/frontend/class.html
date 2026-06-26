@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI탐구메이트 QR 수업 모드</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #f4f7fb; }
+    .class-wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 48px; }
+    .class-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .class-title h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 48px); color: #17233b; letter-spacing: 0; }
+    .class-title p { margin: 0; color: #526176; font-size: 18px; line-height: 1.6; }
+    .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: #eaf8f1; color: #16683d; font-weight: 800; white-space: nowrap; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #18a957; box-shadow: 0 0 0 4px rgba(24,169,87,.16); }
+    .class-grid { display: grid; grid-template-columns: 420px 1fr; gap: 18px; align-items: stretch; }
+    .class-panel { background: #fff; border: 1px solid #d9e3f2; border-radius: 8px; box-shadow: 0 18px 48px rgba(34, 61, 94, .12); padding: 24px; }
+    .qr-box { display: grid; place-items: center; min-height: 372px; border: 1px dashed #b7c7df; border-radius: 8px; background: #f8fbff; }
+    .qr-box img { width: min(330px, 82vw); height: auto; display: block; }
+    .url-line { display: flex; gap: 8px; margin-top: 14px; }
+    .url-line input { flex: 1; min-width: 0; padding: 13px 14px; border: 1px solid #c9d6ea; border-radius: 8px; font-size: 15px; color: #17233b; background: #fff; }
+    .class-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .class-panel h2 { margin: 0 0 14px; color: #17233b; font-size: 24px; }
+    .step-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .step-list li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding: 14px; border-radius: 8px; background: #f3f6fb; color: #2f3f55; }
+    .step-list b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #3159e8; color: #fff; }
+    .trouble { margin-top: 18px; padding: 16px; border-radius: 8px; background: #fff7e8; border: 1px solid #f2d39c; color: #62420c; line-height: 1.6; }
+    .small-note { margin-top: 12px; color: #6a7688; line-height: 1.55; font-size: 14px; }
+    @media(max-width: 900px) {
+      .class-head, .class-grid { grid-template-columns: 1fr; display: grid; }
+      .class-head { gap: 12px; }
+      .status-pill { width: fit-content; }
+    }
+    @media(max-width: 520px) {
+      .class-wrap { width: min(100% - 20px, 1120px); padding-top: 18px; }
+      .class-panel { padding: 16px; }
+      .url-line { flex-direction: column; }
+      .btn { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="class-wrap">
+    <section class="class-head">
+      <div class="class-title">
+        <h1>AI탐구메이트 QR 수업 모드</h1>
+        <p>같은 와이파이에 접속한 학생들은 QR코드를 찍고 바로 탐구 주제 찾기를 시작할 수 있습니다.</p>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span>수업 서버 실행 중</span></div>
+    </section>
+
+    <section class="class-grid">
+      <div class="class-panel">
+        <h2>학생 접속 QR</h2>
+        <div class="qr-box" id="qrBox">QR코드를 준비하고 있습니다.</div>
+        <div class="url-line">
+          <input id="studentUrl" readonly value="주소 확인 중">
+          <button class="btn secondary" type="button" onclick="copyStudentUrl()">복사</button>
+        </div>
+        <div class="class-actions">
+          <a class="btn" id="studentOpen" href="student.html">학생 화면 열기</a>
+          <a class="btn secondary" id="teacherOpen" href="teacher.html">교사 대시보드</a>
+        </div>
+        <p class="small-note">학생에게는 QR코드 또는 위 주소만 안내하면 됩니다. 학생 휴대폰에는 별도 설치가 필요하지 않습니다.</p>
+      </div>
+
+      <div class="class-panel">
+        <h2>수업 진행 순서</h2>
+        <ol class="step-list">
+          <li><b>1</b><span>선생님 컴퓨터에서 이 QR버전 실행 파일을 켭니다.</span></li>
+          <li><b>2</b><span>선생님과 학생 휴대폰이 같은 와이파이에 연결되어 있는지 확인합니다.</span></li>
+          <li><b>3</b><span>학생들이 QR코드를 찍고 학번, 이름을 입력해 탐구 주제를 추천받습니다.</span></li>
+          <li><b>4</b><span>선생님은 교사 대시보드에서 학생들의 진행 상황과 저장 내용을 확인합니다.</span></li>
+        </ol>
+        <div class="trouble">
+          접속이 안 되면 학교 와이파이가 기기 간 접속을 막았거나 Windows 방화벽이 차단했을 수 있습니다. 이 경우 선생님 PC에서 방화벽 허용을 눌러주고, 학생 휴대폰이 데이터가 아닌 같은 와이파이에 연결되어 있는지 확인하세요.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    async function loadClassInfo() {
+      try {
+        const res = await fetch('/api/class-info');
+        const info = await res.json();
+        const studentUrl = info.student_url;
+        document.getElementById('studentUrl').value = studentUrl;
+        document.getElementById('studentOpen').href = studentUrl;
+        document.getElementById('teacherOpen').href = info.local_teacher_url || info.teacher_url;
+        document.getElementById('qrBox').innerHTML = `<img alt="학생 접속 QR코드" src="/api/qr.svg?text=${encodeURIComponent(studentUrl)}">`;
+      } catch (err) {
+        document.getElementById('qrBox').textContent = 'QR 정보를 불러오지 못했습니다. 프로그램을 다시 실행해 주세요.';
+      }
+    }
+
+    async function copyStudentUrl() {
+      const value = document.getElementById('studentUrl').value;
+      try {
+        await navigator.clipboard.writeText(value);
+        alert('학생 접속 주소를 복사했습니다.');
+      } catch (err) {
+        prompt('학생 접속 주소입니다. 복사해서 안내하세요.', value);
+      }
+    }
+
+    loadClassInfo();
+  </script>
+</body>
+</html>
