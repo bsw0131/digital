@@ -549,6 +549,272 @@ def make_interview(topic: str) -> list[str]:
     ]
 
 
+TOPIC_METHOD_HINTS = {
+    "비교": ("설문형", "중", "두 집단이나 두 상황을 같은 기준으로 비교한다."),
+    "영향": ("설문형", "중", "원인으로 볼 항목과 결과로 볼 항목을 나누어 관계를 살핀다."),
+    "개선": ("실천형", "중", "문제 원인을 찾고 학교에서 실행 가능한 해결 방안을 제안한다."),
+    "안전": ("자료조사형", "중", "위험 요인과 예방 기준을 실제 사례와 함께 정리한다."),
+    "윤리": ("자료조사형", "상", "찬반 근거와 학생이 지켜야 할 기준을 함께 검토한다."),
+    "자료": ("분석형", "상", "수집 가능한 수치나 사례를 표로 정리해 경향을 분석한다."),
+    "선택": ("설문형", "하", "선택 기준과 선호 이유를 설문으로 확인한다."),
+}
+
+
+def _clean_interest_parts(tag: str, detail: str) -> list[str]:
+    raw = []
+    raw.extend(_split_tags(tag.strip()))
+    raw.extend(_split_interests(detail.strip()))
+    cleaned = []
+    for item in raw:
+        name = " ".join(item.split())
+        if name and name not in cleaned:
+            cleaned.append(name)
+    return cleaned[:2]
+
+
+def _interest_info(name: str) -> dict:
+    category = _category_for_interest(name) or name
+    domain, focus = _profile_for_interest(name)
+    return {
+        "name": name,
+        "category": category,
+        "domain": domain,
+        "focus": focus,
+    }
+
+
+def _topic_kind(topic: str) -> str:
+    checks = [
+        ("안전", ["안전", "부상", "위험", "예방"]),
+        ("윤리", ["윤리", "공정", "신뢰", "개인정보", "기준"]),
+        ("개선", ["개선", "제안", "만들기", "운영", "캠페인", "방법"]),
+        ("자료", ["자료", "데이터", "분석", "기록", "경향"]),
+        ("비교", ["비교", "차이"]),
+        ("영향", ["영향", "미치는"]),
+        ("선택", ["선택", "기준", "선호"]),
+    ]
+    for kind, words in checks:
+        if any(word in topic for word in words):
+            return kind
+    return "영향"
+
+
+def _make_topic(topic: str, subject: str, kind: str, weeks: int, reason: str, boost: int = 0) -> dict:
+    inquiry_type, difficulty, _ = TOPIC_METHOD_HINTS.get(kind, TOPIC_METHOD_HINTS["영향"])
+    fit = fit_scores(topic, inquiry_type, difficulty, weeks)
+    fit["total"] = max(20, min(98, fit["total"] + boost))
+    return {
+        "topic": topic,
+        "subject": subject,
+        "difficulty": difficulty,
+        "inquiry_type": inquiry_type,
+        "duration": f"{weeks}주",
+        "reason": reason,
+        "fit": fit,
+    }
+
+
+def _subject_for(info: dict) -> str:
+    category = info["category"]
+    return {
+        "스포츠": "체육",
+        "게임": "정보",
+        "유튜브": "정보",
+        "스마트폰": "정보",
+        "AI": "정보",
+        "로봇": "기술",
+        "건강": "보건",
+        "환경": "과학",
+        "친구관계": "도덕",
+        "진로": "진로",
+        "웹툰": "국어",
+        "영화": "국어",
+        "음악": "음악",
+        "K-POP": "사회",
+        "패션": "사회",
+        "음식": "보건",
+        "학교생활": "사회",
+    }.get(category, "사회")
+
+
+def _pair_label(first: str, second: str) -> str:
+    return f"{first}·{second}"
+
+
+def _single_interest_topics(info: dict) -> list[dict]:
+    n = info["name"]
+    d = info["domain"]
+    f = info["focus"]
+    subject = _subject_for(info)
+    reason = f"'{n}'을 중학생이 실제로 조사할 수 있는 생활 문제로 바꾼 주제입니다."
+    return [
+        _make_topic(f"중학생의 {n} 관심도와 참여 이유 분석", subject, "선택", 3, reason, 8),
+        _make_topic(f"{n} 경험이 학교생활 만족도와 친구 관계에 미치는 영향", "사회", "영향", 3, reason, 7),
+        _make_topic(f"{n}을 더 안전하고 건강하게 즐기기 위한 학생 기준 만들기", "도덕", "안전", 3, reason, 6),
+        _make_topic(f"{d}에서 학생들이 중요하게 보는 {f} 요인 비교", subject, "비교", 3, reason, 5),
+        _make_topic(f"학교에서 {n} 관심을 활용한 작은 활동 또는 캠페인 제안", "진로", "개선", 4, reason, 4),
+        _make_topic(f"{n} 관련 자료와 학생 설문을 바탕으로 한 인식 차이 분석", "사회", "자료", 4, reason, 3),
+    ]
+
+
+def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
+    first = a["name"]
+    second = b["name"]
+    pair = _pair_label(first, second)
+    a_cat = a["category"]
+    b_cat = b["category"]
+    reason = f"'{first}'와 '{second}'를 단순히 나열하지 않고, 학생 생활에서 두 관심사가 만나는 지점을 탐구 문제로 바꾼 주제입니다."
+    topics = []
+
+    if a_cat == b_cat:
+        subject = _subject_for(a)
+        topics.extend([
+            _make_topic(f"{pair} 중학생 선택 기준과 선호 이유 비교", subject, "비교", 3, reason, 10),
+            _make_topic(f"{pair} 참여 경험이 친구 관계와 학교생활 만족도에 미치는 영향", "사회", "영향", 3, reason, 9),
+            _make_topic(f"{pair} 활동을 더 안전하고 지속적으로 즐기기 위한 실천 기준 만들기", subject, "안전", 3, reason, 8),
+        ])
+    else:
+        topics.extend([
+            _make_topic(f"{first} 경험이 {second}에 대한 관심과 참여 방식에 미치는 영향", _subject_for(b), "영향", 3, reason, 10),
+            _make_topic(f"{pair} 모두에 관심 있는 학생들의 공통 특징 분석", "사회", "자료", 4, reason, 9),
+            _make_topic(f"{first} 관심을 활용해 {second} 활동을 더 효과적으로 돕는 방법 제안", "진로", "개선", 4, reason, 8),
+        ])
+
+    pair_categories = {a_cat, b_cat}
+    if pair_categories & {"유튜브", "스마트폰", "게임"}:
+        other = second if a_cat in {"유튜브", "스마트폰", "게임"} else first
+        topics.append(_make_topic(f"온라인 콘텐츠가 {other}에 대한 정보 신뢰도와 선택에 미치는 영향", "정보", "윤리", 4, reason, 8))
+    if pair_categories & {"AI", "로봇"}:
+        other = second if a_cat in {"AI", "로봇"} else first
+        topics.append(_make_topic(f"AI와 기술을 활용해 {other} 활동을 도울 때 필요한 공정성과 안전 기준", "정보", "윤리", 4, reason, 8))
+    if pair_categories & {"건강", "스포츠", "음식"}:
+        topics.append(_make_topic(f"{pair} 관심이 건강한 생활 습관 형성에 주는 도움과 한계", "보건", "영향", 3, reason, 7))
+    if pair_categories & {"친구관계", "학교생활"}:
+        topics.append(_make_topic(f"{pair} 관심이 학급 소통과 협력에 미치는 영향", "도덕", "영향", 3, reason, 7))
+    if pair_categories & {"환경"}:
+        topics.append(_make_topic(f"{pair} 관심을 환경 보호 실천과 연결하는 학교 캠페인 제안", "과학", "개선", 4, reason, 7))
+
+    topics.extend([
+        _make_topic(f"학교에서 {pair} 관심을 함께 살린 탐구 활동 설계", "진로", "개선", 4, reason, 5),
+        _make_topic(f"{pair} 관련 학생 경험을 설문과 인터뷰로 비교 분석하기", "사회", "비교", 3, reason, 4),
+    ])
+    return topics
+
+
+def _dedupe_and_rank(items: list[dict]) -> list[dict]:
+    seen = set()
+    ranked = []
+    for item in items:
+        topic = item["topic"]
+        if topic in seen:
+            continue
+        seen.add(topic)
+        ranked.append(item)
+    ranked.sort(key=lambda x: x["fit"]["total"], reverse=True)
+    return ranked[:20]
+
+
+def recommend_topics(tag: str, detail: str) -> list[dict]:
+    interests = _clean_interest_parts(tag, detail)
+    if len(interests) >= 2:
+        items = _fusion_interest_topics(_interest_info(interests[0]), _interest_info(interests[1]))
+    elif len(interests) == 1:
+        items = _single_interest_topics(_interest_info(interests[0]))
+    else:
+        items = _single_interest_topics(_interest_info("학교생활"))
+    return _dedupe_and_rank(items)
+
+
+def _topic_terms(topic: str) -> list[str]:
+    terms = []
+    known_terms = list(INTEREST_PROFILES.keys())
+    for keywords, _ in CUSTOM_INTEREST_KEYWORDS:
+        known_terms.extend(keywords)
+    for keyword in sorted(set(known_terms), key=len, reverse=True):
+        if keyword and keyword in topic and keyword not in terms:
+            terms.append(keyword)
+        if len(terms) >= 4:
+            return terms
+    for chunk in topic.replace("·", ",").replace("와", ",").replace("과", ",").replace("을", ",").replace("를", ",").replace("에", ",").split(","):
+        cleaned = "".join(ch for ch in chunk.strip() if ch.isalnum() or ch in " -")
+        if 2 <= len(cleaned) <= 12 and cleaned not in terms:
+            terms.append(cleaned)
+    return terms[:4]
+
+
+def _topic_guidance(topic: str) -> dict:
+    kind = _topic_kind(topic)
+    terms = _topic_terms(topic)
+    main = terms[0] if terms else topic
+    second = terms[1] if len(terms) > 1 else "학교생활"
+    inquiry_type, _, method_hint = TOPIC_METHOD_HINTS.get(kind, TOPIC_METHOD_HINTS["영향"])
+    return {
+        "kind": kind,
+        "main": main,
+        "second": second,
+        "method_hint": method_hint,
+        "inquiry_type": inquiry_type,
+    }
+
+
+def make_research_guide(topic: str) -> list[str]:
+    g = _topic_guidance(topic)
+    return [
+        f"핵심 개념을 먼저 정리하세요: '{g['main']}', '{g['second']}', 그리고 주제 속 '{g['kind']}'이 무엇을 뜻하는지 학생 눈높이로 정의합니다.",
+        f"자료는 3곳만 우선 찾으세요: 공공기관/학교 자료 1개, 최근 기사나 통계 1개, 학생 생활 사례 1개를 골라 이 주제와 직접 연결되는 부분만 기록합니다.",
+        f"조사 방향은 '{g['method_hint']}'입니다. 자료를 읽을 때 원인, 결과, 비교 기준, 학교 적용 가능성을 표로 나누어 정리합니다.",
+        f"마지막에는 자료조사로 부족한 점을 하나 찾고, 그것을 설문 또는 인터뷰 질문으로 바꿉니다. 예: '{topic}'에서 학생에게 직접 확인해야 할 생각이나 경험은 무엇인가?",
+    ]
+
+
+def make_survey(topic: str) -> list[str]:
+    g = _topic_guidance(topic)
+    if g["kind"] == "비교":
+        return [
+            f"'{topic}'에서 비교하려는 두 대상 중 어느 쪽에 더 관심이 있나요? 그 이유는 무엇인가요?",
+            f"두 대상을 비교할 때 가장 중요하다고 생각하는 기준은 무엇인가요? 예: 재미, 도움, 안전, 친구와 함께하기, 지속 가능성",
+            f"본인의 경험을 기준으로 두 대상의 장점과 불편한 점을 각각 하나씩 적어 주세요.",
+            f"학교에서 이 주제를 활용한다면 어떤 방식이 가장 현실적이라고 생각하나요?",
+        ]
+    if g["kind"] == "개선":
+        return [
+            f"'{topic}'과 관련해 현재 가장 불편하거나 아쉬운 점은 무엇인가요?",
+            "그 문제가 생기는 가장 큰 이유는 무엇이라고 생각하나요?",
+            "제안된 해결 방법이 실제 학교에서 가능하려면 어떤 조건이 필요할까요?",
+            "이 주제를 개선하면 학생들에게 어떤 변화가 생길 것이라고 생각하나요?",
+        ]
+    if g["kind"] in {"안전", "윤리"}:
+        return [
+            f"'{topic}'과 관련해 가장 걱정되는 점은 무엇인가요?",
+            "안전하거나 공정하게 이용하기 위해 가장 중요한 기준은 무엇이라고 생각하나요?",
+            "친구들이 이 기준을 잘 지키지 못하는 이유가 있다면 무엇일까요?",
+            "학교나 학급에서 만들 수 있는 약속 또는 안내 문구를 하나 제안해 주세요.",
+        ]
+    if g["kind"] == "자료":
+        return [
+            f"'{topic}'에서 공통 특징으로 확인하고 싶은 항목은 무엇인가요? 예: 시간, 이유, 함께하는 사람, 장점, 어려움",
+            "본인은 이 주제와 관련해 어떤 경험이나 관심을 가지고 있나요?",
+            "비슷한 관심을 가진 친구들에게서 공통적으로 나타날 것 같은 특징은 무엇이라고 예상하나요?",
+            "조사 결과를 표나 그래프로 정리한다면 어떤 기준으로 나누는 것이 좋을까요?",
+        ]
+    return [
+        f"'{topic}'과 관련한 경험이 있나요? 있다면 어떤 경험인가요?",
+        f"이 주제가 본인의 생활이나 학교생활에 어느 정도 영향을 준다고 생각하나요? 이유도 적어 주세요.",
+        "영향을 주는 가장 중요한 요인은 무엇이라고 생각하나요? 예: 시간, 친구, 정보, 규칙, 건강, 재미",
+        "조사 결과를 바탕으로 학교에서 실천할 수 있는 방법을 하나 제안해 주세요.",
+    ]
+
+
+def make_interview(topic: str) -> list[str]:
+    g = _topic_guidance(topic)
+    return [
+        f"'{topic}' 주제와 관련해 직접 경험했거나 주변에서 본 장면을 구체적으로 말해 주세요.",
+        f"그 경험에서 가장 중요하게 작용한 요인은 무엇이었나요? 왜 그렇게 생각하나요?",
+        f"이 주제를 조사할 때 설문만으로는 알기 어려운 부분은 무엇이라고 보나요?",
+        f"학생들이 실제로 실천할 수 있는 개선 방법이나 주의할 점을 하나 제안한다면 무엇인가요?",
+    ]
+
+
 REPORT_PROFILES = [
     {
         "keywords": ["AI", "인공지능", "알고리즘", "추천", "로봇", "자동화", "센서"],
