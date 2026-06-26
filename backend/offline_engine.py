@@ -444,21 +444,209 @@ def make_interview(topic: str) -> list[str]:
     ]
 
 
+REPORT_PROFILES = [
+    {
+        "keywords": ["AI", "인공지능", "알고리즘", "추천", "로봇", "자동화", "센서"],
+        "background": "기술이 편리함을 주는 동시에 오류, 개인정보, 공정성 문제를 만들 수 있다는 점",
+        "research_focus": "학생들이 기술의 장점과 위험을 어떻게 인식하는지, 실제 사용 경험이 판단에 어떤 영향을 주는지",
+        "data_hint": "서비스 사용 경험 설문, 기술 원리 자료, 실제 활용 사례, 오류나 부작용 사례",
+        "analysis_frame": "편리함, 정확성, 안전성, 공정성 기준으로 응답을 나누어 비교한다.",
+        "visual_hint": "장점과 걱정 요인을 막대그래프로 비교하고, 사용 경험 유무에 따른 차이를 표로 정리한다.",
+        "proposal": "학생용 사용 기준, 개인정보 보호 수칙, 학교에서 안전하게 활용하는 절차",
+    },
+    {
+        "keywords": ["스포츠", "운동", "훈련", "경기", "자세", "부상", "기록"],
+        "background": "운동 참여와 훈련 방식이 흥미, 기록, 안전에 직접적인 영향을 줄 수 있다는 점",
+        "research_focus": "학생들이 어떤 훈련 방법을 선호하고, 기록 향상이나 부상 예방에 어떤 요인이 중요하다고 보는지",
+        "data_hint": "운동 경험 설문, 기록 변화 관찰, 훈련 방법 자료, 부상 예방 자료",
+        "analysis_frame": "기록 향상, 흥미, 안전, 지속 가능성 기준으로 자료와 응답을 비교한다.",
+        "visual_hint": "운동 빈도와 만족도, 부상 경험과 안전 수칙 인식의 관계를 그래프로 나타낸다.",
+        "proposal": "학교 체육 활동에서 실천할 수 있는 준비운동, 안전 수칙, 훈련 방법 개선안",
+    },
+    {
+        "keywords": ["유튜브", "영상", "미디어", "스마트폰", "SNS", "콘텐츠", "웹툰", "영화", "K-POP"],
+        "background": "미디어와 콘텐츠 이용이 즐거움, 정보 습득, 생활 습관, 친구 관계에 영향을 줄 수 있다는 점",
+        "research_focus": "학생들이 콘텐츠를 이용하는 이유와 시간, 긍정적 효과와 부정적 영향을 어떻게 느끼는지",
+        "data_hint": "이용 시간 설문, 콘텐츠 유형별 선호도, 청소년 미디어 이용 통계, 사례 분석",
+        "analysis_frame": "이용 목적, 이용 시간, 만족도, 생활 습관 변화, 정보 신뢰도 기준으로 응답을 분류한다.",
+        "visual_hint": "이용 시간대별 응답 비율과 긍정·부정 영향 순위를 그래프로 정리한다.",
+        "proposal": "건강한 이용 시간, 비판적 콘텐츠 읽기, 친구와 함께 지킬 수 있는 이용 약속",
+    },
+    {
+        "keywords": ["환경", "탄소", "재활용", "쓰레기", "에너지", "기후", "동물", "생태"],
+        "background": "생활 속 작은 선택이 자원 사용, 쓰레기, 생태 환경에 누적된 영향을 줄 수 있다는 점",
+        "research_focus": "학생들이 환경 문제를 얼마나 체감하고, 학교에서 어떤 실천을 현실적으로 할 수 있다고 보는지",
+        "data_hint": "학교 주변 관찰 기록, 실천 경험 설문, 공공기관 환경 자료, 캠페인 사례",
+        "analysis_frame": "실천 가능성, 효과, 비용, 지속 가능성 기준으로 해결 방안을 비교한다.",
+        "visual_hint": "가장 많이 실천하는 행동과 실천이 어려운 이유를 원형 또는 막대그래프로 나타낸다.",
+        "proposal": "교실·급식실·동아리에서 바로 실행할 수 있는 환경 실천 캠페인",
+    },
+    {
+        "keywords": ["건강", "수면", "스트레스", "음식", "식생활", "급식", "보건"],
+        "background": "수면, 식생활, 스트레스 관리 같은 습관이 학습 집중도와 학교생활 만족도에 영향을 줄 수 있다는 점",
+        "research_focus": "학생들의 생활 습관이 어떤 상태이며, 스스로 느끼는 건강과 학교생활에 어떤 차이를 만드는지",
+        "data_hint": "생활 습관 설문, 청소년 건강 권장 기준, 식생활·수면 관련 공공 자료",
+        "analysis_frame": "습관 실천 정도, 어려움, 건강 영향, 학습 집중도 기준으로 응답을 비교한다.",
+        "visual_hint": "수면 시간 또는 식습관 유형에 따른 만족도 차이를 표와 그래프로 정리한다.",
+        "proposal": "중학생이 무리 없이 실천할 수 있는 건강 습관 체크리스트",
+    },
+    {
+        "keywords": ["친구", "관계", "소통", "학교생활", "학습", "수업", "진로", "직업"],
+        "background": "학교생활 경험과 관계, 학습, 진로 인식이 학생의 만족도와 참여도에 영향을 줄 수 있다는 점",
+        "research_focus": "학생들이 학교생활에서 어떤 어려움과 도움 요인을 느끼는지, 개선이 필요한 지점은 무엇인지",
+        "data_hint": "학생 경험 설문, 인터뷰, 학교생활 관련 자료, 진로 정보 자료",
+        "analysis_frame": "만족도, 어려움, 도움 요인, 개선 요구, 학교 적용 가능성 기준으로 응답을 나눈다.",
+        "visual_hint": "만족도가 높은 학생과 낮은 학생의 응답 차이를 비교표로 정리한다.",
+        "proposal": "학급 규칙, 친구 관계, 학습 지원, 진로 활동을 개선하는 실천 제안",
+    },
+    {
+        "keywords": ["패션", "소비", "쇼핑", "브랜드", "여행", "문화"],
+        "background": "소비와 문화 선택이 자기표현, 가치관, 비용, 지속 가능성과 연결될 수 있다는 점",
+        "research_focus": "학생들이 무엇을 기준으로 선택하고 소비하는지, 유행과 가치관이 선택에 어떤 영향을 주는지",
+        "data_hint": "선택 기준 설문, 소비 사례 조사, 문화 자료, 가격·브랜드 비교 자료",
+        "analysis_frame": "가격, 유행, 자기표현, 필요성, 지속 가능성 기준으로 응답을 비교한다.",
+        "visual_hint": "선택 기준의 우선순위와 소비 전후 만족도를 그래프로 정리한다.",
+        "proposal": "합리적이고 책임 있는 선택을 돕는 학생용 판단 기준",
+    },
+]
+
+
+def _report_profile(topic: str) -> dict:
+    lowered = topic.lower()
+    matches = []
+    for profile in REPORT_PROFILES:
+        score = sum(1 for keyword in profile["keywords"] if keyword.lower() in lowered)
+        if score > 0:
+            matches.append((score, profile))
+    matches.sort(key=lambda item: item[0], reverse=True)
+    if len(matches) >= 2:
+        primary = matches[0][1]
+        secondary = matches[1][1]
+        return {
+            "background": f"{primary['background']}과 {secondary['background']}",
+            "research_focus": f"{primary['research_focus']} 또한 {secondary['research_focus']}",
+            "data_hint": f"{primary['data_hint']} / {secondary['data_hint']}",
+            "analysis_frame": f"{primary['analysis_frame']} 또한 {secondary['analysis_frame']}",
+            "visual_hint": f"{primary['visual_hint']} 필요하면 {secondary['visual_hint']}",
+            "proposal": f"{primary['proposal']}과 {secondary['proposal']}",
+        }
+    if matches:
+        return matches[0][1]
+    return {
+        "background": "이 주제가 학생 생활과 학교 문제를 이해하는 데 도움을 줄 수 있다는 점",
+        "research_focus": "학생들이 이 주제를 어떻게 경험하고 인식하는지, 학교생활과 어떤 관련이 있는지",
+        "data_hint": "관련 자료, 학생 설문, 인터뷰, 학교에서 관찰할 수 있는 사례",
+        "analysis_frame": "원인, 영향, 장단점, 실천 가능성 기준으로 자료와 응답을 비교한다.",
+        "visual_hint": "응답 비율과 주요 의견을 표와 그래프로 정리한다.",
+        "proposal": "학교나 학급에서 실천할 수 있는 현실적인 개선 방안",
+    }
+
+
+def _report_inquiry_shape(topic: str) -> dict:
+    if any(word in topic for word in ["비교", "차이", "전후"]):
+        return {
+            "question": f"'{topic}'에서 비교 대상 사이에는 어떤 차이가 나타나는가?",
+            "method": "비교할 두 집단이나 조건을 정하고, 같은 질문과 기준으로 자료를 모은다.",
+            "analysis": "두 집단의 공통점과 차이점을 먼저 정리한 뒤, 차이가 생긴 이유를 해석한다.",
+        }
+    if any(word in topic for word in ["영향", "미치는"]):
+        return {
+            "question": f"'{topic}'에서 영향을 주는 요인과 영향을 받는 결과는 무엇인가?",
+            "method": "원인으로 볼 수 있는 항목과 결과로 볼 수 있는 항목을 나누어 설문과 자료조사를 진행한다.",
+            "analysis": "응답 결과가 높은 항목을 중심으로 영향의 방향과 이유를 설명한다.",
+        }
+    if any(word in topic for word in ["개선", "해결", "제안", "캠페인", "아이디어"]):
+        return {
+            "question": f"'{topic}'을 학교 상황에 맞게 실천하려면 어떤 조건이 필요할까?",
+            "method": "문제 원인, 기존 해결 사례, 학생들이 실천 가능하다고 보는 방법을 함께 조사한다.",
+            "analysis": "효과가 커 보이는 방법과 실제로 실천하기 쉬운 방법을 구분해 평가한다.",
+        }
+    if any(word in topic for word in ["데이터", "통계", "분석", "기록"]):
+        return {
+            "question": f"'{topic}'에서 숫자로 확인할 수 있는 경향은 무엇인가?",
+            "method": "응답이나 관찰 결과를 표로 만들고, 평균·비율·순위처럼 비교 가능한 값으로 정리한다.",
+            "analysis": "가장 두드러진 수치와 예상과 달랐던 수치를 중심으로 의미를 해석한다.",
+        }
+    if any(word in topic for word in ["윤리", "공정", "안전", "신뢰"]):
+        return {
+            "question": f"'{topic}'에서 학생들이 중요하게 생각해야 할 기준은 무엇인가?",
+            "method": "찬성·반대 근거, 걱정되는 점, 필요한 규칙을 자료조사와 설문으로 확인한다.",
+            "analysis": "편리함과 위험, 개인의 자유와 공동체 안전 사이의 균형을 중심으로 해석한다.",
+        }
+    return {
+        "question": f"'{topic}'에 대해 학생들은 어떤 경험과 생각을 가지고 있는가?",
+        "method": "자료조사로 배경을 확인하고, 설문이나 인터뷰로 학생 의견을 모은다.",
+        "analysis": "가장 많이 나온 의견과 서로 다른 의견을 나누어 정리한다.",
+    }
+
+
+def _student_notes(log: str) -> str:
+    text = (log or "").strip()
+    if not text:
+        return "아직 탐구일지가 충분하지 않습니다. 설문 결과, 인터뷰 내용, 조사한 자료의 핵심 문장을 여기에 추가하세요."
+    return text
+
+
+def _plan_excerpt(plan_text: str) -> str:
+    text = (plan_text or "").strip()
+    if not text:
+        return "아직 탐구계획서가 충분하지 않습니다. 탐구 동기, 탐구 문제, 탐구 방법을 먼저 채운 뒤 보고서를 보완하세요."
+    if len(text) <= 600:
+        return text
+    return text[:600].rstrip() + "\n...(계획서의 나머지 내용은 필요한 부분만 골라 보고서에 반영하세요.)"
+
+
 def make_report(topic: str, plan_text: str, log: str) -> str:
+    profile = _report_profile(topic)
+    shape = _report_inquiry_shape(topic)
+    notes = _student_notes(log)
+    plan = _plan_excerpt(plan_text)
     return f"""# 탐구 보고서 초안
 
 ## 1. 탐구 주제
 {topic}
 
-## 2. 탐구 계획
-{plan_text}
+## 2. 탐구 동기
+이 주제는 {profile['background']}에서 출발했다. 특히 내 주변 학생들의 실제 경험과 생각을 확인하면, 막연한 느낌이 아니라 근거를 바탕으로 문제를 이해할 수 있다고 보았다.
 
-## 3. 탐구 과정
-{log or '탐구 과정과 조사 내용을 여기에 정리하세요.'}
+## 3. 탐구 문제
+{shape['question']}
 
-## 4. 결과 분석
-설문과 자료조사 결과를 바탕으로 핵심 경향을 정리하세요.
+세부적으로는 {profile['research_focus']}를 중심으로 살펴본다.
 
-## 5. 결론 및 제안
-탐구를 통해 알게 된 점과 학교에서 실천할 수 있는 제안을 작성하세요.
+## 4. 탐구 방법
+1. 자료조사: {profile['data_hint']}를 찾아 주제의 배경과 핵심 개념을 정리한다.
+2. 설문/인터뷰: {shape['method']}
+3. 결과 정리: {profile['visual_hint']}
+4. 해석 기준: {profile['analysis_frame']}
+
+## 5. 기존 탐구계획서에서 가져올 내용
+{plan}
+
+## 6. 내가 정리한 탐구 자료
+{notes}
+
+## 7. 결과 분석 방향
+{shape['analysis']} 또한 결과를 해석할 때 단순히 '많다/적다'로 끝내지 말고, 왜 그런 응답이 나왔는지 생활 경험, 학교 환경, 자료조사 내용과 연결해 설명한다.
+
+보고서에 넣으면 좋은 문장 틀:
+- 설문 결과, 가장 많이 나타난 응답은 `___`였고, 이는 `___` 때문으로 해석할 수 있다.
+- 자료조사에서 확인한 `___` 내용은 우리 반/학교 학생들의 응답과 `비슷했다/달랐다`.
+- 예상과 달랐던 점은 `___`이며, 그 이유는 `___`일 가능성이 있다.
+
+## 8. 결론
+이번 탐구를 통해 `{topic}`은 학생들의 생활과 분리된 문제가 아니라, 실제 선택과 행동에 영향을 주는 주제임을 확인할 수 있었다. 특히 `___` 결과가 중요했으며, 이는 앞으로 학교생활에서 `___`을 고려해야 함을 보여준다.
+
+## 9. 제안
+{profile['proposal']}을 중심으로 다음과 같은 실천 방안을 제안할 수 있다.
+
+1. 학생 개인: `___`을 실천한다.
+2. 학급/학교: `___` 활동이나 규칙을 마련한다.
+3. 추가 탐구: 이번 조사에서 부족했던 `___`을 더 확인한다.
+
+## 10. 보완할 점
+- 설문 참여 인원이 충분했는지 확인한다.
+- 응답자가 한 학급이나 친한 친구에게 치우치지 않았는지 확인한다.
+- 자료 출처의 작성자, 날짜, 기관을 기록한다.
+- 결론이 자료와 설문 결과에서 실제로 나온 내용인지 다시 점검한다.
 """
