@@ -21,6 +21,43 @@ INTEREST_PROFILES = {
     "학교생활": ("학교생활", "학습, 관계, 규칙, 공간 활용"),
 }
 
+CUSTOM_INTEREST_KEYWORDS = [
+    (["축구", "농구", "야구", "배구", "탁구", "배드민턴", "수영", "달리기", "태권도", "운동", "스포츠"], "스포츠"),
+    (["게임", "로블록스", "마인크래프트", "브롤스타즈", "피파", "롤", "오버워치"], "게임"),
+    (["유튜브", "영상", "쇼츠", "틱톡", "인스타", "SNS", "인플루언서"], "유튜브"),
+    (["웹툰", "만화"], "웹툰"),
+    (["영화", "드라마", "애니"], "영화"),
+    (["노래", "음악", "악기", "밴드", "랩", "댄스"], "음악"),
+    (["아이돌", "케이팝", "KPOP", "K-POP"], "K-POP"),
+    (["AI", "인공지능", "챗GPT", "챗지피티"], "AI"),
+    (["로봇", "드론", "코딩", "프로그래밍"], "로봇"),
+    (["환경", "기후", "분리수거", "플라스틱", "제로웨이스트"], "환경"),
+    (["건강", "수면", "스트레스", "식습관", "다이어트"], "건강"),
+    (["친구", "우정", "관계", "소통"], "친구관계"),
+    (["진로", "직업", "꿈"], "진로"),
+    (["공부", "학습", "시험", "수업"], "학교생활"),
+]
+
+DOMAIN_PAIR_TEMPLATES = {
+    ("스포츠", "스포츠"): [
+        ("{first}와 {second} 참여 학생의 운동 동기와 지속 요인 비교", "체육", "중", "설문형", 3),
+        ("{first}와 {second}에서 팀워크가 경기 만족도에 미치는 영향", "사회", "중", "설문형", 3),
+        ("{first}와 {second}의 부상 예방 습관과 준비운동 실천 비교", "체육", "중", "자료조사형", 3),
+        ("중학생이 {first}와 {second} 중 하나를 선택할 때 중요하게 보는 기준 분석", "체육", "하", "설문형", 2),
+        ("학교 체육 시간에 {first}와 {second}를 더 안전하고 재미있게 운영하는 방법 제안", "체육", "중", "실천형", 4),
+    ],
+    ("게임", "스포츠"): [
+        ("스포츠 게임 경험이 실제 {second} 참여 흥미에 미치는 영향", "체육", "중", "설문형", 3),
+        ("게임 속 전략 이해가 {second} 경기 관찰과 팀 전술 이해에 주는 도움", "체육", "중", "인터뷰형", 3),
+        ("온라인 게임의 경쟁 경험과 실제 운동 경기의 협동 태도 비교", "도덕", "중", "설문형", 3),
+    ],
+    ("유튜브", "스포츠"): [
+        ("스포츠 영상 시청이 {second} 연습 방법 선택에 미치는 영향", "체육", "중", "설문형", 3),
+        ("유튜브 운동 콘텐츠의 장점과 부상 위험 정보 신뢰도 분석", "정보", "중", "자료조사형", 3),
+        ("중학생이 스포츠 영상을 보고 실제 운동을 따라 할 때 필요한 안전 기준 만들기", "체육", "중", "실천형", 3),
+    ],
+}
+
 FUSION_TEMPLATES = [
     ("{context}에서 {b_domain}을 활용하면 {a_focus}에 어떤 변화가 생길까?", "과학", "중", "설문형", 3),
     ("{context}을 개선하기 위한 {b_domain} 활용 아이디어 설계", "정보", "중", "실천형", 4),
@@ -143,20 +180,47 @@ def _split_tags(tag: str) -> list[str]:
     return [part.strip() for part in tag.split("+") if part.strip()]
 
 
+def _split_interests(value: str) -> list[str]:
+    normalized = value.replace("，", ",").replace("、", ",").replace("+", ",")
+    return [part.strip() for part in normalized.split(",") if part.strip()]
+
+
+def _category_for_interest(name: str) -> str:
+    if name in INTEREST_PROFILES:
+        return name
+    lowered = name.lower()
+    for keywords, category in CUSTOM_INTEREST_KEYWORDS:
+        if any(keyword.lower() in lowered for keyword in keywords):
+            return category
+    return ""
+
+
+def _profile_for_interest(name: str) -> tuple[str, str]:
+    category = _category_for_interest(name)
+    if category:
+        base_domain, base_focus = INTEREST_PROFILES[category]
+        if name == category:
+            return base_domain, base_focus
+        return f"{name} 관련 {base_domain}", base_focus
+    return f"{name} 경험과 선택", "참여 이유, 선호 기준, 생활 속 영향"
+
+
 def _profile(name: str) -> tuple[str, str]:
     return INTEREST_PROFILES.get(name, (name, "학생들의 생각, 생활 변화, 학교 적용 가능성"))
 
 
-def _fusion_context(tags: list[str], detail: str) -> dict:
-    first = tags[0] if tags else detail
-    second = tags[1] if len(tags) > 1 else detail
-    a_domain, a_focus = _profile(first)
-    b_domain, b_focus = _profile(second)
-    if detail and tags:
-        context = f"{detail} 상황에서 {a_domain}과 {b_domain}이 만나는 지점"
+def _fusion_context(interests: list[str]) -> dict:
+    first = interests[0] if interests else "학교생활"
+    second = interests[1] if len(interests) > 1 else first
+    a_domain, a_focus = _profile_for_interest(first)
+    b_domain, b_focus = _profile_for_interest(second)
+    if first != second:
+        context = f"{first}와 {second}가 학생 생활에서 연결되는 지점"
     else:
         context = f"{a_domain}과 {b_domain}이 만나는 생활 속 장면"
     return {
+        "first": first,
+        "second": second,
         "a_domain": a_domain,
         "a_focus": a_focus,
         "b_domain": b_domain,
@@ -165,24 +229,65 @@ def _fusion_context(tags: list[str], detail: str) -> dict:
     }
 
 
+def _pair_key(first: str, second: str) -> tuple[str, str]:
+    a = _category_for_interest(first)
+    b = _category_for_interest(second)
+    if not a or not b:
+        return ("", "")
+    if (a, b) in DOMAIN_PAIR_TEMPLATES:
+        return (a, b)
+    if (b, a) in DOMAIN_PAIR_TEMPLATES:
+        return (b, a)
+    return (a, b)
+
+
+def _swap_first_second(template: str) -> str:
+    return template.replace("{first}", "{__tmp__}").replace("{second}", "{first}").replace("{__tmp__}", "{second}")
+
+
+def _pair_templates(first: str, second: str) -> list[tuple[str, str, str, str, int]]:
+    key = _pair_key(first, second)
+    templates = DOMAIN_PAIR_TEMPLATES.get(key, [])
+    if not templates:
+        return []
+    if key[0] != _category_for_interest(first):
+        return [
+            (_swap_first_second(template), subject, difficulty, inquiry_type, weeks)
+            for template, subject, difficulty, inquiry_type, weeks in templates
+        ]
+    return templates
+
+
 def recommend_topics(tag: str, detail: str) -> list[dict]:
     tags = _split_tags(tag.strip())
     detail = detail.strip()
-    is_fusion = len(tags) >= 2 or (len(tags) == 1 and detail)
+    detail_items = _split_interests(detail)
+    interests = (tags + detail_items)[:2]
+    is_fusion = len(interests) >= 2
 
     items = []
     if is_fusion:
-        context = _fusion_context(tags, detail)
-        for template, subject, difficulty, inquiry_type, weeks in FUSION_TEMPLATES:
+        context = _fusion_context(interests)
+        pair_specific_templates = _pair_templates(context["first"], context["second"])
+        templates = pair_specific_templates + FUSION_TEMPLATES
+        seen_topics = set()
+        for index, (template, subject, difficulty, inquiry_type, weeks) in enumerate(templates):
             topic = template.format(**context)
+            if topic in seen_topics:
+                continue
+            seen_topics.add(topic)
             fit = fit_scores(topic, inquiry_type, difficulty, weeks)
+            if index < len(pair_specific_templates):
+                for key in ["data_collection", "survey", "experiment", "school_application"]:
+                    fit[key] = min(98, fit[key] + 8)
+                fit["total"] = min(98, fit["total"] + 10)
             items.append({
                 "topic": topic,
                 "subject": subject,
                 "difficulty": difficulty,
                 "inquiry_type": inquiry_type,
                 "duration": f"{weeks}주",
-                "reason": f"선택한 관심사를 단순히 나열하지 않고, '{context['context']}'에서 조사할 수 있는 문제로 바꾼 주제입니다.",
+                "reason": f"'{context['first']}'와 '{context['second']}'를 단순히 붙이지 않고, '{context['context']}'에서 조사할 수 있는 문제로 바꾼 주제입니다.",
                 "fit": fit,
             })
     else:
