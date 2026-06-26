@@ -68,34 +68,74 @@ SINGLE_TEMPLATES = [
 ]
 
 
-def fit_scores(topic: str, inquiry_type: str = "") -> dict:
-    data = 78
-    survey = 55
-    experiment = 45
-    school = 70
+def _topic_variation(topic: str, salt: int) -> int:
+    value = sum((index + 1 + salt) * ord(ch) for index, ch in enumerate(topic))
+    return value % 13 - 6
+
+
+def _keyword_score(topic: str, keywords: list[str], weight: int = 4) -> int:
+    return sum(weight for keyword in keywords if keyword.lower() in topic.lower())
+
+
+def fit_scores(topic: str, inquiry_type: str = "", difficulty: str = "중", weeks: int = 3) -> dict:
+    data = 66
+    survey = 58
+    experiment = 42
+    school = 64
     if inquiry_type == "설문형":
-        survey += 30
-        school += 10
+        survey += 22
+        school += 8
     elif inquiry_type == "자료조사형":
-        data += 18
+        data += 23
     elif inquiry_type == "분석형":
-        data += 12
-        survey += 8
+        data += 16
+        survey += 7
+        experiment += 3
     elif inquiry_type == "실천형":
-        school += 18
+        school += 22
+        survey += 4
     elif inquiry_type == "실험형":
-        experiment += 25
+        experiment += 28
+        data += 4
     elif inquiry_type == "인터뷰형":
-        survey += 15
-        data += 8
-    vals = [max(5, min(100, x)) for x in [data, survey, experiment, school]]
+        survey += 17
+        data += 9
+
+    data += _keyword_score(topic, ["자료", "사례", "뉴스", "통계", "데이터", "분석", "비교", "원리", "신뢰도"], 3)
+    survey += _keyword_score(topic, ["인식", "선호", "만족도", "경험", "생각", "의견", "친구", "기대", "걱정"], 3)
+    experiment += _keyword_score(topic, ["실험", "관찰", "전후", "변화", "기록", "효과", "원리", "훈련", "센서"], 4)
+    school += _keyword_score(topic, ["학교", "학급", "학생", "중학생", "캠페인", "생활", "실천", "수업", "동아리"], 3)
+
+    if difficulty == "하":
+        survey += 4
+        school += 6
+        experiment -= 4
+    elif difficulty == "상":
+        data += 5
+        experiment += 6
+        school -= 3
+
+    if weeks <= 2:
+        school += 4
+        data -= 3
+    elif weeks >= 5:
+        data += 4
+        experiment += 5
+        school -= 2
+
+    data += _topic_variation(topic, 1)
+    survey += _topic_variation(topic, 5)
+    experiment += _topic_variation(topic, 9)
+    school += _topic_variation(topic, 13)
+
+    vals = [max(20, min(98, round(x))) for x in [data, survey, experiment, school]]
     total = round(vals[0] * 0.30 + vals[1] * 0.25 + vals[2] * 0.20 + vals[3] * 0.25)
     return {
         "data_collection": vals[0],
         "survey": vals[1],
         "experiment": vals[2],
         "school_application": vals[3],
-        "total": total,
+        "total": max(20, min(98, total)),
     }
 
 
@@ -135,7 +175,7 @@ def recommend_topics(tag: str, detail: str) -> list[dict]:
         context = _fusion_context(tags, detail)
         for template, subject, difficulty, inquiry_type, weeks in FUSION_TEMPLATES:
             topic = template.format(**context)
-            fit = fit_scores(topic, inquiry_type)
+            fit = fit_scores(topic, inquiry_type, difficulty, weeks)
             items.append({
                 "topic": topic,
                 "subject": subject,
@@ -149,7 +189,7 @@ def recommend_topics(tag: str, detail: str) -> list[dict]:
         interest = detail or (tags[0] if tags else "학교생활")
         for template, subject, difficulty, inquiry_type, weeks in SINGLE_TEMPLATES:
             topic = template.format(interest=interest)
-            fit = fit_scores(topic, inquiry_type)
+            fit = fit_scores(topic, inquiry_type, difficulty, weeks)
             items.append({
                 "topic": topic,
                 "subject": subject,

@@ -3,6 +3,7 @@ import json
 from dotenv import load_dotenv
 
 from offline_engine import (
+    fit_scores,
     make_interview,
     make_plan,
     make_report,
@@ -27,6 +28,28 @@ def get_online_config() -> dict:
 def has_api_key() -> bool:
     config = get_online_config()
     return bool(config["enabled"] and config["api_key"])
+
+
+def _weeks_from_duration(value) -> int:
+    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
+    return int(digits) if digits else 3
+
+
+def _normalize_recommendation_scores(items: list[dict]) -> list[dict]:
+    normalized = []
+    for item in items:
+        topic = item.get("topic") or ""
+        if not topic:
+            continue
+        item["fit"] = fit_scores(
+            topic,
+            item.get("inquiry_type") or "",
+            item.get("difficulty") or "중",
+            _weeks_from_duration(item.get("duration")),
+        )
+        normalized.append(item)
+    normalized.sort(key=lambda x: (x.get("fit") or {}).get("total", 0), reverse=True)
+    return normalized
 
 
 def recommend(tag: str, detail: str):
@@ -59,8 +82,7 @@ fit.total 점수가 높은 순서로 정렬하라.
             temperature=0.7,
         )
         text = res.choices[0].message.content.strip().replace("```json", "").replace("```", "")
-        items = json.loads(text)
-        items.sort(key=lambda x: (x.get("fit") or {}).get("total", 0), reverse=True)
+        items = _normalize_recommendation_scores(json.loads(text))
         return {"mode": "online", "items": items[:20]}
     except Exception:
         return {"mode": "offline", "items": recommend_topics(tag, detail)}
