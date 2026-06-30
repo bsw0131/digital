@@ -8,7 +8,7 @@ let recommendationPage = 0;
 let lastDashboard = [];
 let teacherPassword = '';
 
-const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화','음식','동물','환경','패션','친구관계','스마트폰','진로','과학','로봇','AI','건강','여행','학교생활'];
+const TAGS = ['AI','스마트폰','유튜브','SNS','게임','웹툰','K-POP','영화','음악','스포츠','건강','수면','스트레스','음식','환경','기후변화','플라스틱','동물','생명윤리','과학','로봇','데이터','수학','학습법','독서','진로','친구관계','학교생활','소비습관','지역사회'];
 const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport', 'wizardPrint'];
 const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90, 100];
 const RECOMMEND_PAGE_SIZE = 5;
