@@ -789,21 +789,55 @@ def _single_interest_topics(info: dict) -> list[dict]:
     subject = _subject_for(info)
     reason = f"'{n}'을 단순한 흥미가 아니라 자료 분석, 변인 비교, 윤리 판단, 개선 설계까지 포함한 중·고등학생용 탐구 문제로 확장한 주제입니다."
     return [
-        _make_topic(f"{d}에서 {f} 요인이 참여 지속성에 미치는 영향 분석", subject, "영향", 4, reason, 10),
-        _make_topic(f"{n} 관련 실제 사례 자료를 분류해 핵심 쟁점과 변화 흐름 분석", subject, "자료", 4, reason, 9),
-        _make_topic(f"중·고등학생의 {n} 선택 기준과 행동 차이를 설명하는 변인 탐구", "사회", "자료", 4, reason, 9),
-        _make_topic(f"{n} 경험 수준에 따른 학습 동기, 관계, 자기관리 습관 비교", "사회", "비교", 4, reason, 8),
-        _make_topic(f"{n} 분야에서 정보 신뢰도와 윤리적 판단 기준 만들기", "도덕", "윤리", 4, reason, 8),
-        _make_topic(f"{n} 활동의 장점과 위험 요인을 근거 자료로 평가하는 탐구", subject, "안전", 4, reason, 8),
-        _make_topic(f"{n}과 관련된 최신 기술 또는 사회 변화가 청소년 생활에 미치는 영향", "사회", "영향", 4, reason, 7),
-        _make_topic(f"{n}을 학교 수업이나 동아리 활동에 적용하기 위한 설계 조건 분석", "진로", "개선", 4, reason, 7),
-        _make_topic(f"{n} 관련 뉴스, 영상, 통계 자료의 관점 차이와 신뢰도 비교", "국어", "윤리", 4, reason, 7),
-        _make_topic(f"{n}을 주제로 한 설문 결과와 공개 자료 결과의 차이 분석", "수학", "자료", 4, reason, 6),
-        _make_topic(f"{n} 관심이 진로 탐색과 미래 역량 인식에 미치는 영향", "진로", "영향", 4, reason, 6),
-        _make_topic(f"{n} 관련 문제를 해결하기 위한 학교 실천 방안의 효과 예측", "사회", "개선", 4, reason, 6),
-        _make_topic(f"{n} 활동에서 공정성, 접근성, 안전성을 높이는 기준 제안", "도덕", "개선", 4, reason, 5),
-        _make_topic(f"{n}에 대한 학생 인터뷰를 통해 드러난 숨은 요구와 개선점 분석", "국어", "비교", 3, reason, 5),
-        _make_topic(f"{n}을 바탕으로 중·고등학생 수준의 심화 탐구 보고서 구조 설계", subject, "자료", 3, reason, 5),
+        _make_topic(f"학생들이 {n}에 관심을 갖는 이유는 무엇일까?", subject, "자료", 4, reason, 10),
+        _make_topic(f"{n}과 관련해 학생들이 가장 중요하게 생각하는 기준은 무엇일까?", "사회", "선택", 3, reason, 10),
+        _make_topic(f"{d}에서 중요한 요소는 만족도에 어떤 차이를 만들까?", subject, "영향", 4, reason, 9),
+        _make_topic(f"{n}에 관심이 높은 학생과 낮은 학생은 생활 습관이 어떻게 다를까?", "사회", "비교", 4, reason, 8),
+        _make_topic(f"{n}에 대한 온라인 정보는 얼마나 믿을 수 있을까?", "정보", "윤리", 4, reason, 8),
+        _make_topic(f"{n}과 관련한 활동이나 선택을 더 바람직하게 하려면 어떤 기준이 필요할까?", "도덕", "안전", 3, reason, 8),
+        _make_topic(f"{n} 관심은 친구 관계나 소통 방식에 어떤 영향을 줄까?", "도덕", "영향", 3, reason, 7),
+        _make_topic(f"{n}을 학교 수업이나 동아리 활동에 활용할 수 있을까?", "진로", "개선", 4, reason, 7),
+        _make_topic(f"{n} 관련 뉴스와 영상은 같은 주제를 어떻게 다르게 보여줄까?", "국어", "비교", 4, reason, 7),
+        _make_topic(f"{n}에 대한 학생 설문 결과와 실제 자료는 얼마나 비슷할까?", "수학", "자료", 4, reason, 6),
+        _make_topic(f"{n} 관심은 진로 탐색에 어떤 도움을 줄 수 있을까?", "진로", "영향", 3, reason, 6),
+        _make_topic(f"{n}과 관련해 학교에서 바꿀 수 있는 작은 문제는 무엇일까?", "사회", "개선", 4, reason, 6),
+        _make_topic(f"{n}을 둘러싼 공정성, 접근성, 안전 문제는 무엇일까?", "도덕", "윤리", 4, reason, 5),
+        _make_topic(f"{n}에 대해 친구들은 어떤 경험과 고민을 가지고 있을까?", "국어", "비교", 3, reason, 5),
+        _make_topic(f"{n}을 더 깊이 탐구하려면 어떤 자료와 질문이 필요할까?", subject, "자료", 3, reason, 5),
+    ]
+
+
+def _individual_mix_topics(a: dict, b: dict) -> list[dict]:
+    first_topics = _single_interest_topics(a)
+    second_topics = _single_interest_topics(b)
+    mixed = []
+    for left, right in zip(first_topics, second_topics):
+        mixed.append(left)
+        mixed.append(right)
+    mixed.extend(first_topics[len(second_topics):])
+    mixed.extend(second_topics[len(first_topics):])
+    return mixed[:15]
+
+
+def _travel_food_topics(first: str, second: str) -> list[dict]:
+    pair = _pair_label(first, second)
+    reason = f"'{first}'와 '{second}'를 억지로 붙이지 않고, 여행지 선택, 지역 음식, 식비, 위생, 문화 경험처럼 실제 조사 가능한 장면으로 바꾼 주제입니다."
+    return [
+        _make_topic("여행지의 지역 음식이 여행 만족도에 미치는 영향", "사회", "영향", 4, reason, 10),
+        _make_topic("중·고등학생이 여행지를 고를 때 음식 정보는 얼마나 중요할까?", "사회", "선택", 3, reason, 9),
+        _make_topic("SNS 맛집 정보는 여행 계획에 어떤 영향을 줄까?", "정보", "윤리", 4, reason, 9),
+        _make_topic("지역 대표 음식은 그 지역의 문화와 역사를 어떻게 보여줄까?", "사회", "자료", 4, reason, 9),
+        _make_topic("여행 중 식비 계획이 전체 여행 만족도에 미치는 영향", "수학", "자료", 4, reason, 8),
+        _make_topic("여행지 음식 선택에서 가격, 위생, 맛, 거리 중 무엇이 가장 중요할까?", "사회", "비교", 3, reason, 8),
+        _make_topic("지역 음식 체험이 여행지 기억에 오래 남는 이유는 무엇일까?", "국어", "비교", 3, reason, 8),
+        _make_topic("관광지 음식 가격은 지역 주민과 관광객에게 어떻게 다르게 받아들여질까?", "사회", "비교", 4, reason, 7),
+        _make_topic("여행지 음식 리뷰의 신뢰도를 판단하는 기준은 무엇일까?", "정보", "윤리", 4, reason, 7),
+        _make_topic("로컬푸드 소비가 지역 경제와 환경에 주는 영향", "사회", "영향", 4, reason, 7),
+        _make_topic("여행 중 음식 위생 정보를 학생들이 쉽게 확인하는 방법 제안", "보건", "안전", 3, reason, 6),
+        _make_topic("학교 주변 지역 음식을 활용한 작은 여행 코스 설계", "진로", "개선", 3, reason, 6),
+        _make_topic("여행지 음식 사진은 실제 선택과 기대감에 어떤 영향을 줄까?", "미술", "영향", 3, reason, 6),
+        _make_topic("지역 축제의 음식 부스는 관광객 참여를 어떻게 높일까?", "사회", "자료", 4, reason, 5),
+        _make_topic(f"{pair} 주제를 탐구할 때 설문과 자료조사를 어떻게 연결할까?", "사회", "자료", 3, reason, 5),
     ]
 
 
@@ -847,6 +881,9 @@ def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
         ])
         return topics
 
+    if {a_cat, b_cat} == {"여행", "음식"}:
+        return _travel_food_topics(first, second)
+
     if a_cat == b_cat:
         subject = _subject_for(a)
         topics.extend([
@@ -856,44 +893,9 @@ def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
             _make_topic(f"{pair} 관련 자료와 학생 설문 결과가 다르게 나타나는 이유 분석", "수학", "자료", 4, reason, 8),
             _make_topic(f"{pair} 분야의 공정성, 접근성, 참여 격차 문제와 개선 방안 탐구", "도덕", "윤리", 4, reason, 8),
         ])
-    else:
-        topics.extend([
-            _make_topic(f"{first} 경험이 {second}에 대한 관심과 참여 방식에 미치는 영향", _subject_for(b), "영향", 4, reason, 10),
-            _make_topic(f"{pair}가 만나는 생활 장면을 찾아 핵심 변인과 관계 구조 분석", "사회", "자료", 4, reason, 10),
-            _make_topic(f"{first} 관심을 활용해 {second} 활동을 더 효과적으로 돕는 방법 제안", "진로", "개선", 4, reason, 9),
-            _make_topic(f"{pair} 융합 주제의 장점, 한계, 윤리적 쟁점을 근거로 평가하기", "도덕", "윤리", 4, reason, 8),
-            _make_topic(f"{pair} 관련 데이터를 수집해 참여도와 만족도의 관계 분석", "수학", "자료", 4, reason, 8),
-        ])
+        return topics
 
-    pair_categories = {a_cat, b_cat}
-    if pair_categories & {"유튜브", "스마트폰", "게임"}:
-        other = second if a_cat in {"유튜브", "스마트폰", "게임"} else first
-        topics.append(_make_topic(f"온라인 콘텐츠가 {other}에 대한 정보 신뢰도와 선택에 미치는 영향", "정보", "윤리", 4, reason, 8))
-    if pair_categories & {"AI", "로봇"}:
-        other = second if a_cat in {"AI", "로봇"} else first
-        topics.append(_make_topic(f"AI와 기술을 활용해 {other} 활동을 도울 때 필요한 공정성과 안전 기준", "정보", "윤리", 4, reason, 8))
-    if pair_categories & {"건강", "스포츠", "음식"}:
-        topics.append(_make_topic(f"{pair} 관심이 건강한 생활 습관 형성에 주는 도움과 한계", "보건", "영향", 3, reason, 7))
-    if pair_categories & {"친구관계", "학교생활"}:
-        topics.append(_make_topic(f"{pair} 관심이 학급 소통과 협력에 미치는 영향", "도덕", "영향", 3, reason, 7))
-    if pair_categories & {"환경"}:
-        topics.append(_make_topic(f"{pair} 관심을 환경 보호 실천과 연결하는 학교 캠페인 제안", "과학", "개선", 4, reason, 7))
-
-    topics.extend([
-        _make_topic(f"학교에서 {pair} 관심을 함께 살린 탐구 활동 설계", "진로", "개선", 4, reason, 5),
-        _make_topic(f"{pair} 관련 학생 경험을 설문과 인터뷰로 비교 분석하기", "사회", "비교", 3, reason, 4),
-        _make_topic(f"{pair} 관심이 학습 동기와 여가 시간 사용에 미치는 영향", "사회", "영향", 3, reason, 4),
-        _make_topic(f"{pair} 관심 주제를 자주 접하는 학생과 그렇지 않은 학생의 인식 차이 비교", "사회", "비교", 3, reason, 4),
-        _make_topic(f"{pair} 관련 온라인 정보의 신뢰도와 학생 판단 기준 탐구", "정보", "윤리", 4, reason, 3),
-        _make_topic(f"{pair} 경험을 바탕으로 한 학교 안내자료 또는 체크리스트 만들기", "국어", "개선", 3, reason, 3),
-        _make_topic(f"{pair} 관심이 스트레스 해소와 자기관리 습관에 주는 영향", "보건", "영향", 3, reason, 2),
-        _make_topic(f"{pair}에 대한 학생 인터뷰를 통해 발견한 공통 경험과 차이 분석", "국어", "비교", 3, reason, 2),
-        _make_topic(f"{pair} 관심이 진로 탐색과 자기주도학습 태도에 미치는 영향", "진로", "영향", 4, reason, 2),
-        _make_topic(f"{pair}를 활용한 중·고등학생 탐구 보고서 사례 분석", "사회", "자료", 3, reason, 2),
-        _make_topic(f"{pair} 관련 학교 활동을 설계할 때 필요한 조건과 한계 분석", "사회", "개선", 4, reason, 2),
-        _make_topic(f"{pair} 주제에서 추가로 조사할 수 있는 변인과 측정 방법 탐구", "수학", "자료", 4, reason, 2),
-    ])
-    return topics
+    return _individual_mix_topics(a, b)
 
 
 def _dedupe_and_rank(items: list[dict]) -> list[dict]:
