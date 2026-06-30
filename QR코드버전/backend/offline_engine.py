@@ -750,23 +750,23 @@ def _single_interest_topics(info: dict) -> list[dict]:
     d = info["domain"]
     f = info["focus"]
     subject = _subject_for(info)
-    reason = f"'{n}'을 중·고등학생이 실제로 조사할 수 있는 탐구 문제로 바꾼 주제입니다."
+    reason = f"'{n}'을 단순한 흥미가 아니라 자료 분석, 변인 비교, 윤리 판단, 개선 설계까지 포함한 중·고등학생용 탐구 문제로 확장한 주제입니다."
     return [
-        _make_topic(f"중·고등학생의 {n} 관심도와 참여 이유 분석", subject, "선택", 3, reason, 8),
-        _make_topic(f"{n} 경험이 학교생활 만족도와 친구 관계에 미치는 영향", "사회", "영향", 3, reason, 7),
-        _make_topic(f"{n}을 더 안전하고 건강하게 즐기기 위한 학생 기준 만들기", "도덕", "안전", 3, reason, 6),
-        _make_topic(f"{d}에서 학생들이 중요하게 보는 {f} 요인 비교", subject, "비교", 3, reason, 5),
-        _make_topic(f"학교에서 {n} 관심을 활용한 작은 활동 또는 캠페인 제안", "진로", "개선", 4, reason, 4),
-        _make_topic(f"{n} 관련 자료와 학생 설문을 바탕으로 한 인식 차이 분석", "사회", "자료", 4, reason, 3),
-        _make_topic(f"{n}을 자주 접하는 학생과 그렇지 않은 학생의 생활 습관 비교", "사회", "비교", 3, reason, 4),
-        _make_topic(f"{n} 활동에서 학생들이 느끼는 장점과 걱정 요인 분석", subject, "영향", 3, reason, 4),
-        _make_topic(f"{n} 관심을 학습이나 진로 탐색과 연결하는 방법 제안", "진로", "개선", 4, reason, 3),
-        _make_topic(f"{n} 관련 온라인 정보의 신뢰도와 학생 판단 기준 탐구", "정보", "윤리", 4, reason, 3),
-        _make_topic(f"{n}에 대한 친구들의 경험을 인터뷰로 분석하기", "국어", "비교", 3, reason, 2),
-        _make_topic(f"{n} 관심이 스트레스 해소와 집중에 주는 도움과 한계", "보건", "영향", 3, reason, 2),
-        _make_topic(f"{n}을 주제로 한 중·고등학생 탐구 보고서 사례 분석", subject, "자료", 3, reason, 2),
-        _make_topic(f"{n} 관심이 자기주도학습과 진로 인식에 미치는 영향", "진로", "영향", 4, reason, 2),
-        _make_topic(f"{n} 관련 학교 활동을 설계할 때 필요한 조건과 한계 분석", "사회", "개선", 4, reason, 2),
+        _make_topic(f"{d}에서 {f} 요인이 참여 지속성에 미치는 영향 분석", subject, "영향", 4, reason, 10),
+        _make_topic(f"{n} 관련 실제 사례 자료를 분류해 핵심 쟁점과 변화 흐름 분석", subject, "자료", 4, reason, 9),
+        _make_topic(f"중·고등학생의 {n} 선택 기준과 행동 차이를 설명하는 변인 탐구", "사회", "자료", 4, reason, 9),
+        _make_topic(f"{n} 경험 수준에 따른 학습 동기, 관계, 자기관리 습관 비교", "사회", "비교", 4, reason, 8),
+        _make_topic(f"{n} 분야에서 정보 신뢰도와 윤리적 판단 기준 만들기", "도덕", "윤리", 4, reason, 8),
+        _make_topic(f"{n} 활동의 장점과 위험 요인을 근거 자료로 평가하는 탐구", subject, "안전", 4, reason, 8),
+        _make_topic(f"{n}과 관련된 최신 기술 또는 사회 변화가 청소년 생활에 미치는 영향", "사회", "영향", 4, reason, 7),
+        _make_topic(f"{n}을 학교 수업이나 동아리 활동에 적용하기 위한 설계 조건 분석", "진로", "개선", 4, reason, 7),
+        _make_topic(f"{n} 관련 뉴스, 영상, 통계 자료의 관점 차이와 신뢰도 비교", "국어", "윤리", 4, reason, 7),
+        _make_topic(f"{n}을 주제로 한 설문 결과와 공개 자료 결과의 차이 분석", "수학", "자료", 4, reason, 6),
+        _make_topic(f"{n} 관심이 진로 탐색과 미래 역량 인식에 미치는 영향", "진로", "영향", 4, reason, 6),
+        _make_topic(f"{n} 관련 문제를 해결하기 위한 학교 실천 방안의 효과 예측", "사회", "개선", 4, reason, 6),
+        _make_topic(f"{n} 활동에서 공정성, 접근성, 안전성을 높이는 기준 제안", "도덕", "개선", 4, reason, 5),
+        _make_topic(f"{n}에 대한 학생 인터뷰를 통해 드러난 숨은 요구와 개선점 분석", "국어", "비교", 3, reason, 5),
+        _make_topic(f"{n}을 바탕으로 중·고등학생 수준의 심화 탐구 보고서 구조 설계", subject, "자료", 3, reason, 5),
     ]
 
 
@@ -813,15 +813,19 @@ def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
     if a_cat == b_cat:
         subject = _subject_for(a)
         topics.extend([
-            _make_topic(f"{pair} 중·고등학생 선택 기준과 선호 이유 비교", subject, "비교", 3, reason, 10),
-            _make_topic(f"{pair} 참여 경험이 친구 관계와 학교생활 만족도에 미치는 영향", "사회", "영향", 3, reason, 9),
-            _make_topic(f"{pair} 활동을 더 안전하고 지속적으로 즐기기 위한 실천 기준 만들기", subject, "안전", 3, reason, 8),
+            _make_topic(f"{pair} 선택 기준을 행동, 환경, 비용, 접근성 변인으로 비교 분석", subject, "비교", 4, reason, 10),
+            _make_topic(f"{pair} 참여 경험이 관계 형성, 자기관리, 학교생활 만족도에 미치는 영향", "사회", "영향", 4, reason, 9),
+            _make_topic(f"{pair} 활동을 더 안전하고 지속적으로 운영하기 위한 근거 기반 기준 만들기", subject, "안전", 4, reason, 9),
+            _make_topic(f"{pair} 관련 자료와 학생 설문 결과가 다르게 나타나는 이유 분석", "수학", "자료", 4, reason, 8),
+            _make_topic(f"{pair} 분야의 공정성, 접근성, 참여 격차 문제와 개선 방안 탐구", "도덕", "윤리", 4, reason, 8),
         ])
     else:
         topics.extend([
-            _make_topic(f"{first} 경험이 {second}에 대한 관심과 참여 방식에 미치는 영향", _subject_for(b), "영향", 3, reason, 10),
-            _make_topic(f"{pair} 모두에 관심 있는 학생들의 공통 특징 분석", "사회", "자료", 4, reason, 9),
-            _make_topic(f"{first} 관심을 활용해 {second} 활동을 더 효과적으로 돕는 방법 제안", "진로", "개선", 4, reason, 8),
+            _make_topic(f"{first} 경험이 {second}에 대한 관심과 참여 방식에 미치는 영향", _subject_for(b), "영향", 4, reason, 10),
+            _make_topic(f"{pair}가 만나는 생활 장면을 찾아 핵심 변인과 관계 구조 분석", "사회", "자료", 4, reason, 10),
+            _make_topic(f"{first} 관심을 활용해 {second} 활동을 더 효과적으로 돕는 방법 제안", "진로", "개선", 4, reason, 9),
+            _make_topic(f"{pair} 융합 주제의 장점, 한계, 윤리적 쟁점을 근거로 평가하기", "도덕", "윤리", 4, reason, 8),
+            _make_topic(f"{pair} 관련 데이터를 수집해 참여도와 만족도의 관계 분석", "수학", "자료", 4, reason, 8),
         ])
 
     pair_categories = {a_cat, b_cat}

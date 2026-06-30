@@ -35,6 +35,15 @@
       <button class="btn" onclick="recommend()">탐구주제 추천받기</button>
     </section>
 
+    <section class="card hidden" id="customTopicBox">
+      <h2>내가 정한 주제로 시작</h2>
+      <p class="muted">추천 주제를 고르지 않아도, 이미 정한 탐구주제가 있다면 그대로 입력해서 계획서부터 진행할 수 있습니다.</p>
+      <div class="row">
+        <input class="input" id="customTopic" placeholder="예: 생성형 AI 사용이 학습 태도와 과제 완성도에 미치는 영향">
+        <button class="btn secondary" onclick="startCustomTopic()">직접 입력한 주제로 시작</button>
+      </div>
+    </section>
+
     <section class="card hidden" id="recommendBox">
       <h2>추천 탐구주제</h2>
       <p class="muted" id="modeText"></p>

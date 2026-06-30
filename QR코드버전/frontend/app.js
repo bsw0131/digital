@@ -115,6 +115,7 @@ async function login() {
   currentStudent = await post('/api/student/login', { name, student_no });
   document.getElementById('loginBox').classList.add('hidden');
   document.getElementById('interestBox').classList.remove('hidden');
+  document.getElementById('customTopicBox')?.classList.remove('hidden');
   await loadMyProjects();
 }
 
@@ -223,6 +224,23 @@ async function startProject(item) {
   const fit = item.fit || {};
   const { detail, tagText } = getInterestQuery();
   const res = await post('/api/projects', { student_id: currentStudent.id, tag: tagText, interest: detail, topic: item.topic, subject: item.subject || '', fit_score: fit.total || 70 });
+  window.location.href = `wizard.html?project_id=${res.project_id}`;
+}
+
+async function startCustomTopic() {
+  if (!currentStudent) return alert('먼저 학번과 이름을 입력해 주세요.');
+  const topic = valueOf('customTopic').trim();
+  if (topic.length < 5) return alert('탐구주제를 조금 더 구체적으로 입력해 주세요.');
+  const { detail, tagText } = getInterestQuery();
+  const interest = detail || topic;
+  const res = await post('/api/projects', {
+    student_id: currentStudent.id,
+    tag: tagText || '직접 주제',
+    interest,
+    topic,
+    subject: '자율탐구',
+    fit_score: 80,
+  });
   window.location.href = `wizard.html?project_id=${res.project_id}`;
 }
 
