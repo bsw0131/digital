@@ -43,7 +43,7 @@ DOMAIN_PAIR_TEMPLATES = {
         ("{first}와 {second} 참여 학생의 운동 동기와 지속 요인 비교", "체육", "중", "설문형", 3),
         ("{first}와 {second}에서 팀워크가 경기 만족도에 미치는 영향", "사회", "중", "설문형", 3),
         ("{first}와 {second}의 부상 예방 습관과 준비운동 실천 비교", "체육", "중", "자료조사형", 3),
-        ("중학생이 {first}와 {second} 중 하나를 선택할 때 중요하게 보는 기준 분석", "체육", "하", "설문형", 2),
+        ("중·고등학생이 {first}와 {second} 중 하나를 선택할 때 중요하게 보는 기준 분석", "체육", "하", "설문형", 2),
         ("학교 체육 시간에 {first}와 {second}를 더 안전하고 재미있게 운영하는 방법 제안", "체육", "중", "실천형", 4),
     ],
     ("게임", "스포츠"): [
@@ -54,7 +54,7 @@ DOMAIN_PAIR_TEMPLATES = {
     ("유튜브", "스포츠"): [
         ("스포츠 영상 시청이 {second} 연습 방법 선택에 미치는 영향", "체육", "중", "설문형", 3),
         ("유튜브 운동 콘텐츠의 장점과 부상 위험 정보 신뢰도 분석", "정보", "중", "자료조사형", 3),
-        ("중학생이 스포츠 영상을 보고 실제 운동을 따라 할 때 필요한 안전 기준 만들기", "체육", "중", "실천형", 3),
+        ("중·고등학생이 스포츠 영상을 보고 실제 운동을 따라 할 때 필요한 안전 기준 만들기", "체육", "중", "실천형", 3),
     ],
 }
 
@@ -82,7 +82,7 @@ FUSION_TEMPLATES = [
 ]
 
 SINGLE_TEMPLATES = [
-    ("{interest}에 대한 중학생의 인식과 선호도 분석", "사회", "하", "설문형", 3),
+    ("{interest}에 대한 중·고등학생의 인식과 선호도 분석", "사회", "하", "설문형", 3),
     ("{interest} 이용 시간이 학습 습관에 미치는 영향", "도덕", "중", "설문형", 3),
     ("{interest} 관련 데이터를 활용한 통계 분석", "수학", "중", "분석형", 4),
     ("{interest} 콘텐츠의 표현 방식과 설득 전략 분석", "국어", "중", "자료조사형", 3),
@@ -141,7 +141,7 @@ def fit_scores(topic: str, inquiry_type: str = "", difficulty: str = "중", week
     data += _keyword_score(topic, ["자료", "사례", "뉴스", "통계", "데이터", "분석", "비교", "원리", "신뢰도"], 3)
     survey += _keyword_score(topic, ["인식", "선호", "만족도", "경험", "생각", "의견", "친구", "기대", "걱정"], 3)
     experiment += _keyword_score(topic, ["실험", "관찰", "전후", "변화", "기록", "효과", "원리", "훈련", "센서"], 4)
-    school += _keyword_score(topic, ["학교", "학급", "학생", "중학생", "캠페인", "생활", "실천", "수업", "동아리"], 3)
+    school += _keyword_score(topic, ["학교", "학급", "학생", "중학생", "고등학생", "중·고등학생", "캠페인", "생활", "실천", "수업", "동아리"], 3)
 
     if difficulty == "하":
         survey += 4
@@ -306,7 +306,7 @@ def recommend_topics(tag: str, detail: str) -> list[dict]:
             })
 
     items.sort(key=lambda x: x["fit"]["total"], reverse=True)
-    return items[:20]
+    return items[:15]
 
 
 def make_plan(topic: str) -> str:
@@ -367,7 +367,7 @@ QUESTION_PROFILES = [
         "experience": "건강 습관이나 식생활을 바꾸려고 해 본 경험",
         "factor": "건강 영향, 실천 난이도, 만족도, 생활 리듬",
         "comparison": "습관이 좋을 때와 나쁠 때의 몸과 생활 차이",
-        "solution": "중학생에게 현실적으로 맞는 건강 실천 방법",
+        "solution": "중·고등학생에게 현실적으로 맞는 건강 실천 방법",
         "expert": "건강 습관을 관리해 본 사람이나 관련 지식을 가진 사람",
     },
     {
@@ -559,6 +559,13 @@ TOPIC_METHOD_HINTS = {
     "선택": ("설문형", "하", "선택 기준과 선호 이유를 설문으로 확인한다."),
 }
 
+MATH_SCIENCE_CONCEPTS = {
+    "math": ["원주율", "방정식", "함수", "그래프", "확률", "통계", "기하", "도형", "피타고라스", "삼각함수", "로그", "수열", "미분", "적분", "벡터", "행렬"],
+    "biology": ["혈액", "혈액형", "세포", "DNA", "유전자", "효소", "호르몬", "면역", "백혈구", "적혈구", "혈소판", "심장", "호흡", "광합성", "미생물"],
+    "chemistry": ["원소", "분자", "화학", "산성", "염기성", "중화", "용액", "농도", "반응속도", "촉매", "이온", "전해질", "산화", "환원"],
+    "physics": ["힘", "운동", "속도", "가속도", "에너지", "전기", "전류", "전압", "자기장", "빛", "파동", "소리", "열", "압력", "밀도"],
+}
+
 
 def _clean_interest_parts(tag: str, detail: str) -> list[str]:
     raw = []
@@ -641,14 +648,111 @@ def _pair_label(first: str, second: str) -> str:
     return f"{first}·{second}"
 
 
+def _concept_area(name: str) -> str:
+    lowered = name.lower()
+    for area, keywords in MATH_SCIENCE_CONCEPTS.items():
+        if any(keyword.lower() in lowered for keyword in keywords):
+            return area
+    return ""
+
+
+def _advanced_concept_topics(info: dict) -> list[dict]:
+    n = info["name"]
+    area = _concept_area(n)
+    if area == "math":
+        subject = "수학"
+        reason = f"'{n}'을 단순 흥미가 아니라 수학적 원리, 모델링, 데이터 분석으로 확장한 중·고등학생용 탐구 주제입니다."
+        return [
+            _make_topic(f"{n} 개념의 역사적 발견 과정과 현대 활용 사례 분석", subject, "자료", 4, reason, 9),
+            _make_topic(f"{n}을 활용한 실제 생활 데이터 모델링 탐구", subject, "자료", 5, reason, 10),
+            _make_topic(f"{n} 개념을 시각화하면 이해도와 문제 해결력이 달라지는가", subject, "영향", 4, reason, 9),
+            _make_topic(f"{n} 관련 오개념 유형과 효과적인 설명 방법 분석", subject, "비교", 4, reason, 8),
+            _make_topic(f"{n}을 활용한 코딩 시뮬레이션 또는 계산 도구 설계", "정보", "개선", 5, reason, 8),
+            _make_topic(f"{n}이 과학·공학 문제 해결에 쓰이는 방식 조사", "과학", "자료", 4, reason, 8),
+            _make_topic(f"{n} 문제 풀이 전략에 따른 정답률과 풀이 시간 비교", subject, "비교", 3, reason, 7),
+            _make_topic(f"{n} 개념을 이용한 학교 주변 현상 수학적으로 설명하기", subject, "자료", 4, reason, 7),
+            _make_topic(f"{n} 학습에서 그래프·표·식 표현 방식의 장단점 비교", subject, "비교", 4, reason, 7),
+            _make_topic(f"{n} 개념을 활용한 융합 탐구 활동 설계", subject, "개선", 4, reason, 6),
+            _make_topic(f"{n} 관련 수학사 자료가 학습 흥미에 미치는 영향", subject, "영향", 3, reason, 6),
+            _make_topic(f"{n}을 주제로 한 탐구형 문항 제작과 난이도 분석", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n} 개념의 정확한 이해를 돕는 비유와 한계 분석", "국어", "비교", 3, reason, 5),
+            _make_topic(f"{n} 활용 문제에서 변인 설정이 결과 해석에 미치는 영향", subject, "영향", 4, reason, 5),
+            _make_topic(f"{n}을 바탕으로 한 중·고등학생 수학 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+        ]
+    if area == "biology":
+        subject = "생명과학"
+        reason = f"'{n}'을 생명과학 원리, 건강, 실험 자료 해석과 연결한 중·고등학생용 탐구 주제입니다."
+        return [
+            _make_topic(f"{n}의 구조와 기능이 인체 항상성 유지에 미치는 영향", subject, "자료", 4, reason, 10),
+            _make_topic(f"{n} 관련 질병 사례를 통해 본 원인과 예방 방법 분석", "보건", "자료", 4, reason, 9),
+            _make_topic(f"{n} 검사 자료를 해석할 때 필요한 생명과학 개념 탐구", subject, "자료", 5, reason, 9),
+            _make_topic(f"{n}과 운동·수면·식습관의 관계를 조사하는 탐구", "보건", "영향", 4, reason, 8),
+            _make_topic(f"{n} 개념을 이해하기 위한 모형 제작과 설명 효과 비교", subject, "비교", 4, reason, 8),
+            _make_topic(f"{n} 관련 뉴스와 의학 정보의 신뢰도 비교 분석", subject, "윤리", 4, reason, 8),
+            _make_topic(f"{n}을 중심으로 본 면역 반응과 건강 관리 방법 탐구", subject, "자료", 4, reason, 7),
+            _make_topic(f"{n} 자료를 표와 그래프로 정리해 경향 분석하기", subject, "자료", 4, reason, 7),
+            _make_topic(f"{n}에 대한 학생들의 오개념과 정확한 과학 설명 비교", subject, "비교", 3, reason, 7),
+            _make_topic(f"{n} 관련 윤리적 쟁점과 개인정보 보호 기준 탐구", "도덕", "윤리", 4, reason, 6),
+            _make_topic(f"{n} 개념을 학교 보건교육 자료로 바꾸는 방법 제안", "보건", "개선", 3, reason, 6),
+            _make_topic(f"{n} 관련 실험에서 안전 수칙과 변인 통제 방법 분석", subject, "안전", 4, reason, 6),
+            _make_topic(f"{n} 변화가 인체 기관계와 연결되는 과정 탐구", subject, "자료", 4, reason, 5),
+            _make_topic(f"{n}을 주제로 한 인터뷰 자료와 과학 자료의 차이 분석", "국어", "비교", 3, reason, 5),
+            _make_topic(f"{n} 개념을 활용한 중·고등학생 생명과학 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+        ]
+    if area == "chemistry":
+        subject = "화학"
+        reason = f"'{n}'을 화학 원리, 생활 속 물질, 실험 설계와 연결한 중·고등학생용 탐구 주제입니다."
+        return [
+            _make_topic(f"{n} 반응의 원리와 생활 속 활용 사례 분석", subject, "자료", 4, reason, 10),
+            _make_topic(f"{n} 실험에서 농도와 온도 변화가 결과에 미치는 영향", subject, "영향", 5, reason, 9),
+            _make_topic(f"{n} 관련 실험의 변인 통제와 안전 수칙 탐구", subject, "안전", 4, reason, 9),
+            _make_topic(f"{n} 개념을 시각화한 모형이 이해도에 미치는 영향", subject, "비교", 4, reason, 8),
+            _make_topic(f"{n} 관련 생활용품의 성분 표시와 신뢰도 분석", subject, "윤리", 4, reason, 8),
+            _make_topic(f"{n} 자료를 표와 그래프로 정리해 반응 경향 분석하기", subject, "자료", 4, reason, 8),
+            _make_topic(f"{n} 개념의 오개념 유형과 설명 방법 비교", subject, "비교", 3, reason, 7),
+            _make_topic(f"{n}을 활용한 환경 문제 해결 가능성 탐구", "과학", "개선", 4, reason, 7),
+            _make_topic(f"{n} 반응속도에 영향을 주는 요인 조사", subject, "영향", 4, reason, 7),
+            _make_topic(f"{n}을 주제로 한 안전한 학교 실험 설계", subject, "개선", 4, reason, 6),
+            _make_topic(f"{n} 관련 뉴스 속 과학 표현의 정확성 분석", "국어", "윤리", 3, reason, 6),
+            _make_topic(f"{n} 개념이 의약품·식품·환경 분야에서 쓰이는 사례 조사", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n} 실험 결과의 오차 원인과 개선 방법 분석", subject, "자료", 4, reason, 5),
+            _make_topic(f"{n} 개념을 활용한 융합 탐구 활동 설계", subject, "개선", 4, reason, 5),
+            _make_topic(f"{n}을 바탕으로 한 중·고등학생 화학 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+        ]
+    if area == "physics":
+        subject = "물리"
+        reason = f"'{n}'을 물리 원리, 측정, 모델링, 실험 설계와 연결한 중·고등학생용 탐구 주제입니다."
+        return [
+            _make_topic(f"{n} 원리를 이용한 생활 속 현상 분석", subject, "자료", 4, reason, 10),
+            _make_topic(f"{n} 측정 자료를 활용한 그래프 모델링 탐구", subject, "자료", 5, reason, 9),
+            _make_topic(f"{n} 실험에서 변인 통제가 결과 해석에 미치는 영향", subject, "영향", 4, reason, 9),
+            _make_topic(f"{n} 개념을 시뮬레이션으로 표현하는 방법 설계", "정보", "개선", 5, reason, 8),
+            _make_topic(f"{n}과 에너지 효율의 관계를 학교생활 사례로 분석", subject, "자료", 4, reason, 8),
+            _make_topic(f"{n} 관련 안전 기준과 사고 예방 방법 탐구", subject, "안전", 4, reason, 8),
+            _make_topic(f"{n}에 대한 학생 오개념과 정확한 물리 설명 비교", subject, "비교", 3, reason, 7),
+            _make_topic(f"{n} 개념을 활용한 간단한 측정 장치 설계", "기술", "개선", 4, reason, 7),
+            _make_topic(f"{n} 변화가 운동 상태나 에너지 전환에 미치는 영향", subject, "영향", 4, reason, 7),
+            _make_topic(f"{n} 자료를 표와 그래프로 정리해 경향 분석하기", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n} 관련 뉴스 속 과학 표현의 정확성 분석", "국어", "윤리", 3, reason, 6),
+            _make_topic(f"{n} 실험 결과의 오차 원인과 개선 방법 분석", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n}을 활용한 공학적 문제 해결 사례 조사", "기술", "자료", 4, reason, 5),
+            _make_topic(f"{n} 개념을 시각화한 자료가 학습 이해도에 미치는 영향", subject, "비교", 3, reason, 5),
+            _make_topic(f"{n}을 바탕으로 한 중·고등학생 물리 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+        ]
+    return []
+
+
 def _single_interest_topics(info: dict) -> list[dict]:
+    advanced = _advanced_concept_topics(info)
+    if advanced:
+        return advanced
     n = info["name"]
     d = info["domain"]
     f = info["focus"]
     subject = _subject_for(info)
-    reason = f"'{n}'을 중학생이 실제로 조사할 수 있는 생활 문제로 바꾼 주제입니다."
+    reason = f"'{n}'을 중·고등학생이 실제로 조사할 수 있는 탐구 문제로 바꾼 주제입니다."
     return [
-        _make_topic(f"중학생의 {n} 관심도와 참여 이유 분석", subject, "선택", 3, reason, 8),
+        _make_topic(f"중·고등학생의 {n} 관심도와 참여 이유 분석", subject, "선택", 3, reason, 8),
         _make_topic(f"{n} 경험이 학교생활 만족도와 친구 관계에 미치는 영향", "사회", "영향", 3, reason, 7),
         _make_topic(f"{n}을 더 안전하고 건강하게 즐기기 위한 학생 기준 만들기", "도덕", "안전", 3, reason, 6),
         _make_topic(f"{d}에서 학생들이 중요하게 보는 {f} 요인 비교", subject, "비교", 3, reason, 5),
@@ -660,6 +764,9 @@ def _single_interest_topics(info: dict) -> list[dict]:
         _make_topic(f"{n} 관련 온라인 정보의 신뢰도와 학생 판단 기준 탐구", "정보", "윤리", 4, reason, 3),
         _make_topic(f"{n}에 대한 친구들의 경험을 인터뷰로 분석하기", "국어", "비교", 3, reason, 2),
         _make_topic(f"{n} 관심이 스트레스 해소와 집중에 주는 도움과 한계", "보건", "영향", 3, reason, 2),
+        _make_topic(f"{n}을 주제로 한 중·고등학생 탐구 보고서 사례 분석", subject, "자료", 3, reason, 2),
+        _make_topic(f"{n} 관심이 자기주도학습과 진로 인식에 미치는 영향", "진로", "영향", 4, reason, 2),
+        _make_topic(f"{n} 관련 학교 활동을 설계할 때 필요한 조건과 한계 분석", "사회", "개선", 4, reason, 2),
     ]
 
 
@@ -671,11 +778,42 @@ def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
     b_cat = b["category"]
     reason = f"'{first}'와 '{second}'를 단순히 나열하지 않고, 학생 생활에서 두 관심사가 만나는 지점을 탐구 문제로 바꾼 주제입니다."
     topics = []
+    a_area = _concept_area(first)
+    b_area = _concept_area(second)
+
+    if a_area or b_area:
+        concept = first if a_area else second
+        other = second if a_area else first
+        concept_subject = {
+            "math": "수학",
+            "biology": "생명과학",
+            "chemistry": "화학",
+            "physics": "물리",
+        }.get(a_area or b_area, "과학")
+        reason = f"'{concept}' 개념을 '{other}' 관심사와 연결해 중·고등학생 수준의 융합 탐구 문제로 바꾼 주제입니다."
+        topics.extend([
+            _make_topic(f"{concept} 개념을 활용해 {other} 현상이나 사례를 설명하기", concept_subject, "자료", 4, reason, 10),
+            _make_topic(f"{concept}과 {other}를 연결한 실제 데이터 수집 및 분석 탐구", concept_subject, "자료", 5, reason, 10),
+            _make_topic(f"{concept} 원리를 {other} 활동에 적용할 때 생기는 장점과 한계 분석", concept_subject, "영향", 4, reason, 9),
+            _make_topic(f"{concept} 개념을 {other} 주제로 설명하는 시각화 자료 제작과 효과 비교", concept_subject, "비교", 4, reason, 9),
+            _make_topic(f"{concept} 관련 오개념이 {other} 이해에 미치는 영향", concept_subject, "영향", 4, reason, 8),
+            _make_topic(f"{concept}과 {other}를 융합한 탐구형 실험 또는 관찰 계획 설계", concept_subject, "개선", 5, reason, 8),
+            _make_topic(f"{concept} 관련 자료와 {other} 사례의 신뢰도 비교 분석", concept_subject, "윤리", 4, reason, 8),
+            _make_topic(f"{concept}을 바탕으로 {other} 문제를 모델링하는 방법 탐구", concept_subject, "자료", 5, reason, 7),
+            _make_topic(f"{concept}과 {other}의 관계를 설명하는 수업용 탐구 활동 설계", "진로", "개선", 4, reason, 7),
+            _make_topic(f"{concept} 개념을 활용한 {other} 관련 진로와 기술 활용 사례 조사", "진로", "자료", 4, reason, 7),
+            _make_topic(f"{concept}과 {other}를 주제로 한 학생 설문과 자료조사 결과 비교", "사회", "비교", 3, reason, 6),
+            _make_topic(f"{concept} 관련 실험 안전 기준을 {other} 활동과 연결해 제안하기", concept_subject, "안전", 4, reason, 6),
+            _make_topic(f"{concept}의 역사적 발전과 {other} 분야 활용 사례 분석", concept_subject, "자료", 4, reason, 6),
+            _make_topic(f"{concept}을 {other}와 연결해 중·고등학생 탐구 보고서 주제로 발전시키는 방법", concept_subject, "개선", 3, reason, 5),
+            _make_topic(f"{concept}과 {other} 융합 주제에서 추가로 탐구할 변인과 측정 방법 분석", concept_subject, "자료", 4, reason, 5),
+        ])
+        return topics
 
     if a_cat == b_cat:
         subject = _subject_for(a)
         topics.extend([
-            _make_topic(f"{pair} 중학생 선택 기준과 선호 이유 비교", subject, "비교", 3, reason, 10),
+            _make_topic(f"{pair} 중·고등학생 선택 기준과 선호 이유 비교", subject, "비교", 3, reason, 10),
             _make_topic(f"{pair} 참여 경험이 친구 관계와 학교생활 만족도에 미치는 영향", "사회", "영향", 3, reason, 9),
             _make_topic(f"{pair} 활동을 더 안전하고 지속적으로 즐기기 위한 실천 기준 만들기", subject, "안전", 3, reason, 8),
         ])
@@ -709,6 +847,10 @@ def _fusion_interest_topics(a: dict, b: dict) -> list[dict]:
         _make_topic(f"{pair} 경험을 바탕으로 한 학교 안내자료 또는 체크리스트 만들기", "국어", "개선", 3, reason, 3),
         _make_topic(f"{pair} 관심이 스트레스 해소와 자기관리 습관에 주는 영향", "보건", "영향", 3, reason, 2),
         _make_topic(f"{pair}에 대한 학생 인터뷰를 통해 발견한 공통 경험과 차이 분석", "국어", "비교", 3, reason, 2),
+        _make_topic(f"{pair} 관심이 진로 탐색과 자기주도학습 태도에 미치는 영향", "진로", "영향", 4, reason, 2),
+        _make_topic(f"{pair}를 활용한 중·고등학생 탐구 보고서 사례 분석", "사회", "자료", 3, reason, 2),
+        _make_topic(f"{pair} 관련 학교 활동을 설계할 때 필요한 조건과 한계 분석", "사회", "개선", 4, reason, 2),
+        _make_topic(f"{pair} 주제에서 추가로 조사할 수 있는 변인과 측정 방법 탐구", "수학", "자료", 4, reason, 2),
     ])
     return topics
 
@@ -723,7 +865,7 @@ def _dedupe_and_rank(items: list[dict]) -> list[dict]:
         seen.add(topic)
         ranked.append(item)
     ranked.sort(key=lambda x: x["fit"]["total"], reverse=True)
-    return ranked[:20]
+    return ranked[:15]
 
 
 def recommend_topics(tag: str, detail: str) -> list[dict]:
@@ -871,7 +1013,7 @@ REPORT_PROFILES = [
         "data_hint": "생활 습관 설문, 청소년 건강 권장 기준, 식생활·수면 관련 공공 자료",
         "analysis_frame": "습관 실천 정도, 어려움, 건강 영향, 학습 집중도 기준으로 응답을 비교한다.",
         "visual_hint": "수면 시간 또는 식습관 유형에 따른 만족도 차이를 표와 그래프로 정리한다.",
-        "proposal": "중학생이 무리 없이 실천할 수 있는 건강 습관 체크리스트",
+        "proposal": "중·고등학생이 무리 없이 실천할 수 있는 건강 습관 체크리스트",
     },
     {
         "keywords": ["친구", "관계", "소통", "학교생활", "학습", "수업", "진로", "직업"],

@@ -12,7 +12,7 @@ const TAGS = ['게임','스포츠','음악','K-POP','유튜브','웹툰','영화
 const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport', 'wizardPrint'];
 const WIZARD_PROGRESS = [30, 45, 60, 70, 80, 90, 100];
 const RECOMMEND_PAGE_SIZE = 5;
-const RECOMMEND_MAX_ITEMS = 20;
+const RECOMMEND_MAX_ITEMS = 15;
 window.onload = () => {
   const tagBox = document.getElementById('tags');
   if (tagBox) tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');

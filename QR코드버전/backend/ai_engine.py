@@ -62,7 +62,7 @@ def recommend(tag: str, detail: str):
 
         client = OpenAI(api_key=config["api_key"])
         prompt = f"""
-중학교 2학년 학생용 탐구활동 주제 20개를 추천하라.
+중·고등학생용 탐구활동 주제를 반드시 15개 추천하라.
 관심 태그: {tag}
 세부 관심사: {detail}
 
@@ -85,7 +85,7 @@ fit.total 점수가 높은 순서로 정렬하라.
         )
         text = res.choices[0].message.content.strip().replace("```json", "").replace("```", "")
         items = _normalize_recommendation_scores(json.loads(text))
-        return {"mode": "online", "items": items[:20]}
+        return {"mode": "online", "items": items[:15]}
     except Exception:
         return {"mode": "offline", "items": recommend_topics(tag, detail)}
 
