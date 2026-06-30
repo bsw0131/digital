@@ -648,6 +648,15 @@ def _pair_label(first: str, second: str) -> str:
     return f"{first}·{second}"
 
 
+def _josa(word: str, with_batchim: str, without_batchim: str) -> str:
+    if not word:
+        return without_batchim
+    code = ord(word[-1])
+    if 0xAC00 <= code <= 0xD7A3:
+        return with_batchim if (code - 0xAC00) % 28 else without_batchim
+    return without_batchim
+
+
 def _concept_area(name: str) -> str:
     lowered = name.lower()
     for area, keywords in MATH_SCIENCE_CONCEPTS.items():
@@ -661,83 +670,111 @@ def _advanced_concept_topics(info: dict) -> list[dict]:
     area = _concept_area(n)
     if area == "math":
         subject = "수학"
-        reason = f"'{n}'을 단순 흥미가 아니라 수학적 원리, 모델링, 데이터 분석으로 확장한 중·고등학생용 탐구 주제입니다."
+        reason = f"'{n}'의 정의, 증명, 역사, 활용 원리를 스스로 설명하고 탐구할 수 있도록 만든 심화 개념형 주제입니다."
+        eun = _josa(n, "은", "는")
+        eul = _josa(n, "을", "를")
+        if "원주율" in n:
+            return [
+                _make_topic("원주율은 왜 3.14로 시작할까?", subject, "자료", 4, reason, 10),
+                _make_topic("원주율이 무리수인 이유는 무엇일까?", subject, "자료", 5, reason, 10),
+                _make_topic("원주율은 어떻게 끝없이 이어지는 수임을 알 수 있을까?", subject, "자료", 5, reason, 9),
+                _make_topic("원주율을 직접 측정하면 왜 항상 오차가 생길까?", subject, "영향", 4, reason, 9),
+                _make_topic("원주율을 계산하는 고대 방법과 현대 알고리즘은 어떻게 다를까?", subject, "비교", 5, reason, 9),
+                _make_topic("원주율과 원의 넓이 공식은 어떻게 연결될까?", subject, "자료", 4, reason, 8),
+                _make_topic("아르키메데스는 원주율을 어떻게 추정했을까?", subject, "자료", 4, reason, 8),
+                _make_topic("원주율의 소수점 숫자에는 규칙이 있을까?", subject, "자료", 4, reason, 8),
+                _make_topic("원주율을 3.14 대신 22/7로 쓰면 어떤 차이가 생길까?", subject, "비교", 4, reason, 7),
+                _make_topic("원주율은 원이 아닌 곳에서도 왜 나타날까?", subject, "자료", 5, reason, 7),
+                _make_topic("원주율과 삼각함수는 어떤 관계가 있을까?", subject, "자료", 5, reason, 7),
+                _make_topic("컴퓨터는 원주율을 어떻게 빠르게 계산할까?", "정보", "개선", 5, reason, 7),
+                _make_topic("원주율 암기는 수학적 이해에 실제로 도움이 될까?", subject, "비교", 3, reason, 6),
+                _make_topic("원주율 근삿값의 자리 수가 늘어나면 실제 계산 결과는 얼마나 달라질까?", subject, "자료", 4, reason, 6),
+                _make_topic("원주율을 설명하는 여러 비유는 어디까지 정확할까?", "국어", "비교", 3, reason, 6),
+            ]
         return [
-            _make_topic(f"{n} 개념의 역사적 발견 과정과 현대 활용 사례 분석", subject, "자료", 4, reason, 9),
-            _make_topic(f"{n}을 활용한 실제 생활 데이터 모델링 탐구", subject, "자료", 5, reason, 10),
-            _make_topic(f"{n} 개념을 시각화하면 이해도와 문제 해결력이 달라지는가", subject, "영향", 4, reason, 9),
-            _make_topic(f"{n} 관련 오개념 유형과 효과적인 설명 방법 분석", subject, "비교", 4, reason, 8),
-            _make_topic(f"{n}을 활용한 코딩 시뮬레이션 또는 계산 도구 설계", "정보", "개선", 5, reason, 8),
-            _make_topic(f"{n}이 과학·공학 문제 해결에 쓰이는 방식 조사", "과학", "자료", 4, reason, 8),
-            _make_topic(f"{n} 문제 풀이 전략에 따른 정답률과 풀이 시간 비교", subject, "비교", 3, reason, 7),
-            _make_topic(f"{n} 개념을 이용한 학교 주변 현상 수학적으로 설명하기", subject, "자료", 4, reason, 7),
-            _make_topic(f"{n} 학습에서 그래프·표·식 표현 방식의 장단점 비교", subject, "비교", 4, reason, 7),
-            _make_topic(f"{n} 개념을 활용한 융합 탐구 활동 설계", subject, "개선", 4, reason, 6),
-            _make_topic(f"{n} 관련 수학사 자료가 학습 흥미에 미치는 영향", subject, "영향", 3, reason, 6),
-            _make_topic(f"{n}을 주제로 한 탐구형 문항 제작과 난이도 분석", subject, "자료", 4, reason, 6),
-            _make_topic(f"{n} 개념의 정확한 이해를 돕는 비유와 한계 분석", "국어", "비교", 3, reason, 5),
-            _make_topic(f"{n} 활용 문제에서 변인 설정이 결과 해석에 미치는 영향", subject, "영향", 4, reason, 5),
-            _make_topic(f"{n}을 바탕으로 한 중·고등학생 수학 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+            _make_topic(f"{n}{eun} 왜 필요한 수학 개념일까?", subject, "자료", 4, reason, 10),
+            _make_topic(f"{n}의 정의는 어떻게 만들어졌을까?", subject, "자료", 4, reason, 9),
+            _make_topic(f"{n}{eun} 어떤 조건에서 성립하고 어떤 조건에서 달라질까?", subject, "자료", 5, reason, 9),
+            _make_topic(f"{n}{eul} 그림, 표, 식으로 표현하면 무엇이 달라질까?", subject, "비교", 4, reason, 9),
+            _make_topic(f"{n}{eul} 잘못 이해할 때 생기는 대표적인 오개념은 무엇일까?", subject, "비교", 4, reason, 8),
+            _make_topic(f"{n}{eul} 증명하거나 설명하는 여러 방법은 어떻게 다를까?", subject, "비교", 5, reason, 8),
+            _make_topic(f"{n}{eun} 실제 문제를 모델링할 때 어떤 역할을 할까?", subject, "자료", 5, reason, 8),
+            _make_topic(f"{n} 문제에서 풀이 전략에 따라 사고 과정은 어떻게 달라질까?", subject, "비교", 4, reason, 7),
+            _make_topic(f"{n}{eul} 컴퓨터 시뮬레이션으로 표현할 수 있을까?", "정보", "개선", 5, reason, 7),
+            _make_topic(f"{n}{eun} 과학이나 공학 문제 해결에 어떻게 쓰일까?", "과학", "자료", 4, reason, 7),
+            _make_topic(f"{n}의 역사적 발견 과정은 오늘날의 수학 학습과 어떻게 연결될까?", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n}{eul} 설명하는 가장 정확한 비유는 무엇일까?", "국어", "비교", 3, reason, 6),
+            _make_topic(f"{n}{eul} 활용한 탐구형 문항은 어떻게 만들 수 있을까?", subject, "개선", 4, reason, 6),
+            _make_topic(f"{n}{eul} 이해했다는 것은 무엇을 할 수 있다는 뜻일까?", subject, "자료", 3, reason, 5),
+            _make_topic(f"{n}{eul} 중·고등학생 수준에서 더 깊게 탐구하려면 어떤 질문이 필요할까?", subject, "자료", 3, reason, 5),
         ]
     if area == "biology":
         subject = "생명과학"
-        reason = f"'{n}'을 생명과학 원리, 건강, 실험 자료 해석과 연결한 중·고등학생용 탐구 주제입니다."
+        reason = f"'{n}'의 구조, 기능, 조절 원리, 건강과의 관계를 깊게 설명하도록 만든 심화 생명과학 주제입니다."
+        eun = _josa(n, "은", "는")
+        eul = _josa(n, "을", "를")
+        gwa = _josa(n, "과", "와")
         return [
-            _make_topic(f"{n}의 구조와 기능이 인체 항상성 유지에 미치는 영향", subject, "자료", 4, reason, 10),
-            _make_topic(f"{n} 관련 질병 사례를 통해 본 원인과 예방 방법 분석", "보건", "자료", 4, reason, 9),
-            _make_topic(f"{n} 검사 자료를 해석할 때 필요한 생명과학 개념 탐구", subject, "자료", 5, reason, 9),
-            _make_topic(f"{n}과 운동·수면·식습관의 관계를 조사하는 탐구", "보건", "영향", 4, reason, 8),
-            _make_topic(f"{n} 개념을 이해하기 위한 모형 제작과 설명 효과 비교", subject, "비교", 4, reason, 8),
-            _make_topic(f"{n} 관련 뉴스와 의학 정보의 신뢰도 비교 분석", subject, "윤리", 4, reason, 8),
-            _make_topic(f"{n}을 중심으로 본 면역 반응과 건강 관리 방법 탐구", subject, "자료", 4, reason, 7),
-            _make_topic(f"{n} 자료를 표와 그래프로 정리해 경향 분석하기", subject, "자료", 4, reason, 7),
-            _make_topic(f"{n}에 대한 학생들의 오개념과 정확한 과학 설명 비교", subject, "비교", 3, reason, 7),
-            _make_topic(f"{n} 관련 윤리적 쟁점과 개인정보 보호 기준 탐구", "도덕", "윤리", 4, reason, 6),
-            _make_topic(f"{n} 개념을 학교 보건교육 자료로 바꾸는 방법 제안", "보건", "개선", 3, reason, 6),
-            _make_topic(f"{n} 관련 실험에서 안전 수칙과 변인 통제 방법 분석", subject, "안전", 4, reason, 6),
-            _make_topic(f"{n} 변화가 인체 기관계와 연결되는 과정 탐구", subject, "자료", 4, reason, 5),
-            _make_topic(f"{n}을 주제로 한 인터뷰 자료와 과학 자료의 차이 분석", "국어", "비교", 3, reason, 5),
-            _make_topic(f"{n} 개념을 활용한 중·고등학생 생명과학 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+            _make_topic(f"{n}{eun} 몸속에서 정확히 어떤 역할을 할까?", subject, "자료", 4, reason, 10),
+            _make_topic(f"{n}의 구조와 기능은 어떻게 연결될까?", subject, "자료", 5, reason, 10),
+            _make_topic(f"{n}{_josa(n, '이', '가')} 항상성 유지에 중요한 이유는 무엇일까?", subject, "자료", 5, reason, 9),
+            _make_topic(f"{n}에 이상이 생기면 몸에서는 어떤 변화가 나타날까?", "보건", "영향", 4, reason, 9),
+            _make_topic(f"{n} 검사 결과는 어떤 생명과학 개념으로 해석할 수 있을까?", subject, "자료", 5, reason, 8),
+            _make_topic(f"{n}{gwa} 면역 반응은 어떻게 연결될까?", subject, "자료", 4, reason, 8),
+            _make_topic(f"{n}{eun} 운동, 수면, 식습관과 어떤 관계가 있을까?", "보건", "영향", 4, reason, 8),
+            _make_topic(f"{n}에 대한 흔한 오개념은 왜 생길까?", subject, "비교", 3, reason, 7),
+            _make_topic(f"{n}{eul} 모형으로 설명하면 어떤 한계가 있을까?", subject, "비교", 4, reason, 7),
+            _make_topic(f"{n} 관련 질병은 어떤 원리로 발생하고 예방할 수 있을까?", "보건", "자료", 4, reason, 7),
+            _make_topic(f"{n} 관련 의학 정보는 어떻게 신뢰도를 판단해야 할까?", subject, "윤리", 4, reason, 6),
+            _make_topic(f"{n}을 관찰하거나 실험할 때 어떤 변인을 통제해야 할까?", subject, "안전", 4, reason, 6),
+            _make_topic(f"{n} 변화는 다른 기관계와 어떻게 연결될까?", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n}을 설명하는 좋은 질문과 나쁜 질문은 어떻게 다를까?", "국어", "비교", 3, reason, 5),
+            _make_topic(f"{n}을 중·고등학생 수준에서 깊게 탐구하려면 어떤 자료가 필요할까?", subject, "자료", 3, reason, 5),
         ]
     if area == "chemistry":
         subject = "화학"
-        reason = f"'{n}'을 화학 원리, 생활 속 물질, 실험 설계와 연결한 중·고등학생용 탐구 주제입니다."
+        reason = f"'{n}'의 입자 수준 원리, 반응 조건, 실험 설계와 생활 속 물질을 연결한 심화 화학 주제입니다."
+        eun = _josa(n, "은", "는")
+        eul = _josa(n, "을", "를")
         return [
-            _make_topic(f"{n} 반응의 원리와 생활 속 활용 사례 분석", subject, "자료", 4, reason, 10),
-            _make_topic(f"{n} 실험에서 농도와 온도 변화가 결과에 미치는 영향", subject, "영향", 5, reason, 9),
-            _make_topic(f"{n} 관련 실험의 변인 통제와 안전 수칙 탐구", subject, "안전", 4, reason, 9),
-            _make_topic(f"{n} 개념을 시각화한 모형이 이해도에 미치는 영향", subject, "비교", 4, reason, 8),
-            _make_topic(f"{n} 관련 생활용품의 성분 표시와 신뢰도 분석", subject, "윤리", 4, reason, 8),
-            _make_topic(f"{n} 자료를 표와 그래프로 정리해 반응 경향 분석하기", subject, "자료", 4, reason, 8),
-            _make_topic(f"{n} 개념의 오개념 유형과 설명 방법 비교", subject, "비교", 3, reason, 7),
-            _make_topic(f"{n}을 활용한 환경 문제 해결 가능성 탐구", "과학", "개선", 4, reason, 7),
-            _make_topic(f"{n} 반응속도에 영향을 주는 요인 조사", subject, "영향", 4, reason, 7),
-            _make_topic(f"{n}을 주제로 한 안전한 학교 실험 설계", subject, "개선", 4, reason, 6),
-            _make_topic(f"{n} 관련 뉴스 속 과학 표현의 정확성 분석", "국어", "윤리", 3, reason, 6),
-            _make_topic(f"{n} 개념이 의약품·식품·환경 분야에서 쓰이는 사례 조사", subject, "자료", 4, reason, 6),
-            _make_topic(f"{n} 실험 결과의 오차 원인과 개선 방법 분석", subject, "자료", 4, reason, 5),
-            _make_topic(f"{n} 개념을 활용한 융합 탐구 활동 설계", subject, "개선", 4, reason, 5),
-            _make_topic(f"{n}을 바탕으로 한 중·고등학생 화학 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+            _make_topic(f"{n}{eun} 입자 수준에서 어떤 일이 일어나는 현상일까?", subject, "자료", 5, reason, 10),
+            _make_topic(f"{n} 반응은 왜 특정 조건에서 더 잘 일어날까?", subject, "영향", 5, reason, 10),
+            _make_topic(f"{n}{eul} 설명할 때 원자, 분자, 이온 개념은 어떻게 쓰일까?", subject, "자료", 4, reason, 9),
+            _make_topic(f"{n} 실험에서 농도와 온도는 결과를 어떻게 바꿀까?", subject, "영향", 5, reason, 9),
+            _make_topic(f"{n} 반응의 속도를 결정하는 요인은 무엇일까?", subject, "영향", 4, reason, 8),
+            _make_topic(f"{n}{eul} 눈에 보이는 모형으로 표현하면 무엇을 놓치게 될까?", subject, "비교", 4, reason, 8),
+            _make_topic(f"{n} 실험에서 변인을 통제하지 않으면 왜 결론이 흔들릴까?", subject, "안전", 4, reason, 8),
+            _make_topic(f"{n}과 생활용품의 성분 표시는 어떻게 연결될까?", subject, "윤리", 4, reason, 7),
+            _make_topic(f"{n} 관련 오개념은 왜 생기고 어떻게 바로잡을 수 있을까?", subject, "비교", 3, reason, 7),
+            _make_topic(f"{n}{eun} 환경 문제 해결에 실제로 도움이 될까?", "과학", "개선", 4, reason, 7),
+            _make_topic(f"{n} 실험의 오차는 어디에서 발생할까?", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n} 관련 뉴스 속 과학 표현은 얼마나 정확할까?", "국어", "윤리", 3, reason, 6),
+            _make_topic(f"{n}{eun} 의약품, 식품, 환경 분야에서 왜 중요할까?", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n}{eul} 학교에서 안전하게 탐구하려면 어떤 실험 설계가 필요할까?", subject, "개선", 4, reason, 5),
+            _make_topic(f"{n}{eul} 중·고등학생 수준에서 깊게 탐구하려면 어떤 질문이 좋을까?", subject, "자료", 3, reason, 5),
         ]
     if area == "physics":
         subject = "물리"
-        reason = f"'{n}'을 물리 원리, 측정, 모델링, 실험 설계와 연결한 중·고등학생용 탐구 주제입니다."
+        reason = f"'{n}'의 법칙, 측정, 변인 통제, 모델링을 중심으로 현상을 설명하도록 만든 심화 물리 주제입니다."
+        eun = _josa(n, "은", "는")
+        eul = _josa(n, "을", "를")
+        gwa = _josa(n, "과", "와")
         return [
-            _make_topic(f"{n} 원리를 이용한 생활 속 현상 분석", subject, "자료", 4, reason, 10),
-            _make_topic(f"{n} 측정 자료를 활용한 그래프 모델링 탐구", subject, "자료", 5, reason, 9),
-            _make_topic(f"{n} 실험에서 변인 통제가 결과 해석에 미치는 영향", subject, "영향", 4, reason, 9),
-            _make_topic(f"{n} 개념을 시뮬레이션으로 표현하는 방법 설계", "정보", "개선", 5, reason, 8),
-            _make_topic(f"{n}과 에너지 효율의 관계를 학교생활 사례로 분석", subject, "자료", 4, reason, 8),
-            _make_topic(f"{n} 관련 안전 기준과 사고 예방 방법 탐구", subject, "안전", 4, reason, 8),
-            _make_topic(f"{n}에 대한 학생 오개념과 정확한 물리 설명 비교", subject, "비교", 3, reason, 7),
-            _make_topic(f"{n} 개념을 활용한 간단한 측정 장치 설계", "기술", "개선", 4, reason, 7),
-            _make_topic(f"{n} 변화가 운동 상태나 에너지 전환에 미치는 영향", subject, "영향", 4, reason, 7),
-            _make_topic(f"{n} 자료를 표와 그래프로 정리해 경향 분석하기", subject, "자료", 4, reason, 6),
-            _make_topic(f"{n} 관련 뉴스 속 과학 표현의 정확성 분석", "국어", "윤리", 3, reason, 6),
-            _make_topic(f"{n} 실험 결과의 오차 원인과 개선 방법 분석", subject, "자료", 4, reason, 6),
-            _make_topic(f"{n}을 활용한 공학적 문제 해결 사례 조사", "기술", "자료", 4, reason, 5),
-            _make_topic(f"{n} 개념을 시각화한 자료가 학습 이해도에 미치는 영향", subject, "비교", 3, reason, 5),
-            _make_topic(f"{n}을 바탕으로 한 중·고등학생 물리 탐구 보고서 사례 분석", subject, "자료", 3, reason, 5),
+            _make_topic(f"{n}{eun} 왜 물체의 상태를 바꾸는 원인이 될까?", subject, "자료", 4, reason, 10),
+            _make_topic(f"{n}{eul} 정확히 측정하려면 어떤 조건이 필요할까?", subject, "자료", 5, reason, 10),
+            _make_topic(f"{n}{gwa} 에너지 전환은 어떻게 연결될까?", subject, "자료", 5, reason, 9),
+            _make_topic(f"{n} 실험에서 변인을 통제하지 않으면 왜 결론이 달라질까?", subject, "영향", 4, reason, 9),
+            _make_topic(f"{n}{eul} 그래프로 나타내면 어떤 법칙을 발견할 수 있을까?", subject, "자료", 5, reason, 8),
+            _make_topic(f"{n} 개념을 시뮬레이션으로 표현하면 무엇을 설명할 수 있을까?", "정보", "개선", 5, reason, 8),
+            _make_topic(f"{n}에 대한 학생 오개념은 왜 생길까?", subject, "비교", 3, reason, 8),
+            _make_topic(f"{n} 변화는 운동 상태를 어떻게 바꿀까?", subject, "영향", 4, reason, 7),
+            _make_topic(f"{n}과 안전 기준은 어떤 물리 원리로 연결될까?", subject, "안전", 4, reason, 7),
+            _make_topic(f"{n}{eul} 활용한 측정 장치는 어떻게 설계할 수 있을까?", "기술", "개선", 4, reason, 7),
+            _make_topic(f"{n} 관련 생활 속 현상은 어떤 법칙으로 설명될까?", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n} 실험 결과의 오차는 어디에서 생길까?", subject, "자료", 4, reason, 6),
+            _make_topic(f"{n}{eun} 공학적 문제 해결에 어떻게 활용될까?", "기술", "자료", 4, reason, 6),
+            _make_topic(f"{n}{eul} 시각화한 자료는 어디까지 정확할까?", subject, "비교", 3, reason, 5),
+            _make_topic(f"{n}{eul} 중·고등학생 수준에서 깊게 탐구하려면 어떤 질문이 필요할까?", subject, "자료", 3, reason, 5),
         ]
     return []
 
