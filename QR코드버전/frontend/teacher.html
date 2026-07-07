@@ -20,11 +20,36 @@
 
     <section class="card" id="teacherLogin">
       <h2>교사 로그인</h2>
+      <p class="muted" id="teacherPasswordStatus">비밀번호 설정 상태를 확인하고 있습니다.</p>
       <div class="row">
         <input class="input" id="teacherPw" type="password" placeholder="비밀번호">
         <button class="btn" onclick="teacherLogin()">로그인</button>
+        <button class="btn secondary" onclick="showTeacherPasswordPanel()">비밀번호 설정</button>
       </div>
-      <p class="muted">기본 비밀번호: teacher1234</p>
+      <p class="muted">처음 실행할 때는 교사 비밀번호가 없습니다.</p>
+
+      <div class="auth-panel hidden" id="teacherPasswordPanel">
+        <h3>비밀번호 설정</h3>
+        <label class="field-label" for="newTeacherPw">새 비밀번호</label>
+        <input class="input" id="newTeacherPw" type="password" placeholder="새 비밀번호">
+        <label class="field-label hidden" id="currentTeacherPwLabel" for="currentTeacherPw">현재 비밀번호</label>
+        <input class="input hidden" id="currentTeacherPw" type="password" placeholder="현재 비밀번호">
+        <label class="field-label" for="teacherPwHint">비밀번호 찾기 힌트</label>
+        <input class="input" id="teacherPwHint" placeholder="예: 우리 반 이름">
+        <div class="row tools">
+          <button class="btn" onclick="setTeacherPassword()">저장</button>
+          <button class="btn secondary" onclick="hideTeacherPasswordPanel()">닫기</button>
+        </div>
+      </div>
+
+      <div class="auth-panel" id="teacherRecoverPanel">
+        <h3>비밀번호 찾기</h3>
+        <div class="row">
+          <input class="input" id="teacherRecoverHint" placeholder="설정한 힌트를 입력하세요">
+          <button class="btn secondary" onclick="recoverTeacherPassword()">찾기</button>
+        </div>
+        <p class="muted" id="teacherRecoverResult"></p>
+      </div>
     </section>
 
     <section class="card hidden" id="dash">
@@ -32,6 +57,7 @@
         <h2>학생 탐구 현황</h2>
         <div class="row no-print">
           <button class="btn secondary" onclick="loadDashboard()">새로고침</button>
+          <button class="btn secondary" onclick="showTeacherPasswordPanel()">비밀번호 설정</button>
           <a class="btn secondary" href="ai-settings.html">AI 설정</a>
           <button class="btn secondary" onclick="saveDashboardPdf()">PDF로 저장</button>
           <button class="btn danger" onclick="resetStudentData()">학생자료 초기화</button>

@@ -14,12 +14,18 @@ import qrcode.image.svg
 
 import ai_engine
 from database import get_conn, init_db
-from settings_store import get_ai_settings_public, save_ai_settings
+from settings_store import (
+    get_ai_settings_public,
+    get_teacher_auth_public,
+    recover_teacher_password,
+    save_ai_settings,
+    save_teacher_password,
+    verify_teacher_password,
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
 FRONTEND_DIR = RESOURCE_DIR / "frontend"
-TEACHER_PASSWORD = "teacher1234"
 KST = timezone(timedelta(hours=9))
 
 app = FastAPI(title="AI 탐구메이트")
@@ -74,6 +80,16 @@ class TeacherAuthReq(BaseModel):
     password: str = ""
 
 
+class TeacherPasswordSetReq(BaseModel):
+    password: str = ""
+    hint: str = ""
+    current_password: str = ""
+
+
+class TeacherPasswordRecoverReq(BaseModel):
+    hint: str = ""
+
+
 class FeedbackReq(BaseModel):
     teacher_comment: str = ""
     problem_def: int = 0
@@ -83,7 +99,7 @@ class FeedbackReq(BaseModel):
 
 
 def require_teacher(password: str):
-    if password != TEACHER_PASSWORD:
+    if not verify_teacher_password(password):
         raise HTTPException(403, "invalid teacher password")
 
 
@@ -413,7 +429,31 @@ def generate_report(project_id: int):
 
 @app.post("/api/teacher/login")
 def teacher_login(payload: dict):
-    return {"ok": payload.get("password") == TEACHER_PASSWORD}
+    return {"ok": verify_teacher_password(payload.get("password", "")), **get_teacher_auth_public()}
+
+
+@app.get("/api/teacher/password-status")
+def teacher_password_status():
+    return get_teacher_auth_public()
+
+
+@app.post("/api/teacher/password")
+def set_teacher_password(req: TeacherPasswordSetReq):
+    try:
+        status = save_teacher_password(req.password, req.hint, req.current_password)
+    except ValueError:
+        raise HTTPException(400, "password is required")
+    except PermissionError:
+        raise HTTPException(403, "invalid teacher password")
+    return {"ok": True, **status}
+
+
+@app.post("/api/teacher/password/recover")
+def recover_password(req: TeacherPasswordRecoverReq):
+    password = recover_teacher_password(req.hint)
+    if not password:
+        return {"ok": False}
+    return {"ok": True, "password": password}
 
 
 @app.post("/api/teacher/ai-settings")

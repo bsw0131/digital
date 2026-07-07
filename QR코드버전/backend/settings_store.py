@@ -41,6 +41,45 @@ def get_ai_settings_private() -> dict:
     }
 
 
+def get_teacher_auth_public() -> dict:
+    saved = _read_file()
+    return {
+        "has_password": bool(saved.get("teacher_password")),
+        "has_hint": bool((saved.get("teacher_password_hint") or "").strip()),
+    }
+
+
+def verify_teacher_password(password: str = "") -> bool:
+    saved = _read_file()
+    teacher_password = saved.get("teacher_password") or ""
+    if not teacher_password:
+        return True
+    return (password or "") == teacher_password
+
+
+def save_teacher_password(password: str, hint: str = "", current_password: str = "") -> dict:
+    new_password = (password or "").strip()
+    if not new_password:
+        raise ValueError("password is required")
+    saved = _read_file()
+    if saved.get("teacher_password") and not verify_teacher_password(current_password):
+        raise PermissionError("invalid teacher password")
+    saved["teacher_password"] = new_password
+    saved["teacher_password_hint"] = (hint or "").strip()
+    _write_file(saved)
+    return get_teacher_auth_public()
+
+
+def recover_teacher_password(hint: str = "") -> str:
+    saved = _read_file()
+    expected_hint = (saved.get("teacher_password_hint") or "").strip()
+    if not saved.get("teacher_password") or not expected_hint:
+        return ""
+    if (hint or "").strip() != expected_hint:
+        return ""
+    return saved.get("teacher_password") or ""
+
+
 def get_ai_settings_public() -> dict:
     private = get_ai_settings_private()
     return {

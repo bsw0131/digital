@@ -16,6 +16,7 @@ const RECOMMEND_MAX_ITEMS = 15;
 window.onload = () => {
   const tagBox = document.getElementById('tags');
   if (tagBox) tagBox.innerHTML = TAGS.map(t => `<span class="tag" onclick="selectTag(this,'${t}')">${t}</span>`).join('');
+  initTeacherPage();
   initWizardPage();
   initAiSettingsPage();
   initInternetStatus();
@@ -384,6 +385,98 @@ async function printSummary() {
   window.print();
 }
 
+async function getTeacherPasswordStatus() {
+  try {
+    return await (await fetch('/api/teacher/password-status')).json();
+  } catch (error) {
+    return { has_password: true, has_hint: false };
+  }
+}
+
+function updateTeacherPasswordStatus(status) {
+  const text = document.getElementById('teacherPasswordStatus');
+  if (text) {
+    text.innerText = status.has_password
+      ? '설정된 교사 비밀번호로 로그인하세요.'
+      : '현재 교사 비밀번호가 없습니다. 바로 대시보드를 열었습니다.';
+  }
+  const currentInput = document.getElementById('currentTeacherPw');
+  const currentLabel = document.getElementById('currentTeacherPwLabel');
+  currentInput?.classList.toggle('hidden', !status.has_password);
+  currentLabel?.classList.toggle('hidden', !status.has_password);
+  document.getElementById('teacherRecoverPanel')?.classList.toggle('hidden', !status.has_password || !status.has_hint);
+}
+
+async function initTeacherPage() {
+  if (!document.getElementById('teacherLogin')) return;
+  const status = await getTeacherPasswordStatus();
+  updateTeacherPasswordStatus(status);
+  teacherPassword = sessionStorage.getItem('teacherPassword') || '';
+  if (!status.has_password) {
+    teacherPassword = '';
+    sessionStorage.setItem('teacherPassword', '');
+    document.getElementById('teacherLogin')?.classList.add('hidden');
+    document.getElementById('dash')?.classList.remove('hidden');
+    await loadDashboard();
+    return;
+  }
+  if (teacherPassword) {
+    const res = await post('/api/teacher/login', { password: teacherPassword });
+    if (res.ok) {
+      document.getElementById('teacherLogin')?.classList.add('hidden');
+      document.getElementById('dash')?.classList.remove('hidden');
+      await loadDashboard();
+    }
+  }
+}
+
+async function showTeacherPasswordPanel() {
+  const status = await getTeacherPasswordStatus();
+  updateTeacherPasswordStatus(status);
+  document.getElementById('teacherLogin')?.classList.remove('hidden');
+  document.getElementById('teacherPasswordPanel')?.classList.remove('hidden');
+  document.getElementById('newTeacherPw')?.focus();
+}
+
+function hideTeacherPasswordPanel() {
+  document.getElementById('teacherPasswordPanel')?.classList.add('hidden');
+  if (!document.getElementById('dash')?.classList.contains('hidden')) {
+    document.getElementById('teacherLogin')?.classList.add('hidden');
+  }
+}
+
+async function setTeacherPassword() {
+  const password = valueOf('newTeacherPw').trim();
+  if (!password) return alert('새 비밀번호를 입력하세요.');
+  const payload = {
+    password,
+    hint: valueOf('teacherPwHint').trim(),
+    current_password: valueOf('currentTeacherPw'),
+  };
+  const res = await post('/api/teacher/password', payload);
+  if (!res.ok) return alert(res.detail === 'invalid teacher password' ? '현재 비밀번호가 올바르지 않습니다.' : '비밀번호 저장에 실패했습니다.');
+  teacherPassword = password;
+  sessionStorage.setItem('teacherPassword', password);
+  updateTeacherPasswordStatus(res);
+  hideTeacherPasswordPanel();
+  document.getElementById('teacherLogin')?.classList.add('hidden');
+  document.getElementById('dash')?.classList.remove('hidden');
+  alert('교사 비밀번호가 저장되었습니다.');
+  await loadDashboard();
+}
+
+async function recoverTeacherPassword() {
+  const hint = valueOf('teacherRecoverHint').trim();
+  if (!hint) return alert('힌트를 입력하세요.');
+  const res = await post('/api/teacher/password/recover', { hint });
+  const result = document.getElementById('teacherRecoverResult');
+  if (!res.ok) {
+    if (result) result.innerText = '힌트가 일치하지 않습니다.';
+    return;
+  }
+  if (result) result.innerText = `비밀번호: ${res.password}`;
+}
+
 async function teacherLogin() {
   const password = document.getElementById('teacherPw').value;
   const res = await post('/api/teacher/login', { password });
@@ -408,8 +501,16 @@ async function aiSettingsLogin() {
 
 async function initAiSettingsPage() {
   if (!document.getElementById('aiSettingsLogin')) return;
+  const status = await getTeacherPasswordStatus();
   teacherPassword = sessionStorage.getItem('teacherPassword') || '';
-  if (!teacherPassword) return;
+  if (!status.has_password) {
+    teacherPassword = '';
+  } else if (!teacherPassword) {
+    return;
+  } else {
+    const auth = await post('/api/teacher/login', { password: teacherPassword });
+    if (!auth.ok) return;
+  }
   document.getElementById('aiSettingsLogin')?.classList.add('hidden');
   document.getElementById('aiSettingsBox')?.classList.remove('hidden');
   await loadAiSettings();
