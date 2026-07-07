@@ -695,6 +695,54 @@ def _josa(word: str, with_batchim: str, without_batchim: str) -> str:
     return without_batchim
 
 
+def _reason_for_single_topic(info: dict, topic: str, kind: str, index: int = 0) -> str:
+    name = info["name"]
+    domain = info["domain"]
+    focus = info["focus"]
+    variants = {
+        "자료": [
+            f"'{topic}' 주제는 {domain}을 막연한 주장으로 끝내지 않고 실제 사례, 통계, 관찰 자료로 확인하기 좋습니다.",
+            f"{focus}와 관련된 자료를 모아 학생 생활 속 경향을 분석할 수 있어 '{name}' 관심사를 구체적인 탐구로 연결합니다.",
+            f"학교나 생활 주변에서 찾을 수 있는 근거를 바탕으로 '{topic}'의 특징을 설명할 수 있습니다.",
+        ],
+        "개선": [
+            f"'{topic}'은 {name} 관심을 학교에서 실천 가능한 해결 방법이나 캠페인으로 발전시킬 수 있는 주제입니다.",
+            f"{focus}에서 생기는 불편함을 찾고, 학생이 직접 적용해 볼 개선안을 만들 수 있습니다.",
+            f"자료조사와 설문 결과를 바탕으로 '{topic}'에 대한 현실적인 실천 방안을 제안할 수 있습니다.",
+        ],
+        "윤리": [
+            f"'{topic}'은 {name}을 둘러싼 장점과 걱정, 공정성 기준을 함께 따져 볼 수 있는 주제입니다.",
+            f"{focus}와 관련해 학생들이 어떤 기준으로 판단해야 하는지 찬반 근거를 비교하기 좋습니다.",
+            f"단순 선호 조사가 아니라 '{topic}' 속 책임 있는 선택 기준을 세워 볼 수 있습니다.",
+        ],
+        "안전": [
+            f"'{topic}'은 {domain}을 더 안전하고 바람직하게 이용하기 위한 기준을 학생 눈높이에서 만들 수 있는 주제입니다.",
+            f"{focus}에서 생길 수 있는 위험 요인을 실제 사례와 설문으로 확인하기 좋습니다.",
+            f"친구들이 바로 적용할 수 있는 약속이나 안내 기준까지 제안할 수 있습니다.",
+        ],
+        "비교": [
+            f"'{topic}' 주제는 두 대상이나 조건을 같은 기준으로 비교해 {name}에 대한 막연한 생각을 근거로 바꿀 수 있습니다.",
+            f"{focus}가 학생마다 어떻게 다르게 나타나는지 비교표와 설문 결과로 설명하기 좋습니다.",
+            f"서로 다른 경험을 가진 학생들의 차이를 분석해 '{topic}'의 핵심 기준을 찾을 수 있습니다.",
+        ],
+        "선택": [
+            f"'{topic}' 주제는 학생들이 {name}과 관련해 무엇을 중요하게 보는지 선택 기준을 직접 조사하기 좋습니다.",
+            f"{focus} 중 어떤 요소가 실제 선택에 영향을 주는지 설문과 인터뷰로 확인할 수 있습니다.",
+            f"친구들의 판단 기준을 모아 '{topic}'에 대한 우선순위와 이유를 분석할 수 있습니다.",
+        ],
+        "영향": [
+            f"'{topic}' 주제는 {name}이 학생의 생활, 관계, 학습 태도에 어떤 변화를 만드는지 확인하기 좋습니다.",
+            f"{focus}와 관련된 경험을 설문으로 모아 어떤 요인이 결과에 영향을 주는지 살필 수 있습니다.",
+            f"자료조사와 친구들의 실제 경험을 연결해 '{topic}'의 원인과 결과를 설명할 수 있습니다.",
+        ],
+    }
+    choices = variants.get(kind, variants["영향"])
+    reason = choices[index % len(choices)]
+    if topic not in reason:
+        reason = f"{reason} 이 탐구의 핵심 질문은 '{topic}'입니다."
+    return reason
+
+
 def _concept_area(name: str) -> str:
     lowered = name.lower()
     for area, keywords in MATH_SCIENCE_CONCEPTS.items():
@@ -854,9 +902,8 @@ CURATED_SINGLE_TOPICS = {
 
 
 def _curated_single_topics(info: dict) -> list[dict]:
-    reason = f"'{info['name']}'을 중·고등학생이 실제 자료조사, 설문, 인터뷰로 탐구할 만한 가치 있는 문제로 바꾼 주제입니다."
     return [
-        _make_topic(title, subject, kind, weeks, reason, 24 - index)
+        _make_topic(title, subject, kind, weeks, _reason_for_single_topic(info, title, kind, index), 24 - index)
         for index, (title, subject, kind, weeks) in enumerate(CURATED_SINGLE_TOPICS.get(info["category"], []))
     ]
 
@@ -870,7 +917,7 @@ def _single_interest_topics(info: dict) -> list[dict]:
     d = info["domain"]
     f = info["focus"]
     subject = _subject_for(info)
-    reason = f"'{n}'을 단순한 흥미가 아니라 자료 분석, 변인 비교, 윤리 판단, 개선 설계까지 포함한 중·고등학생용 탐구 문제로 확장한 주제입니다."
+    reason = ""
     generic = [
         _make_topic(f"학생들이 {n}에 관심을 갖는 이유는 무엇일까?", subject, "자료", 4, reason, 10),
         _make_topic(f"{n}{_josa(n, '과', '와')} 관련해 학생들이 가장 중요하게 생각하는 기준은 무엇일까?", "사회", "선택", 3, reason, 10),
@@ -888,6 +935,8 @@ def _single_interest_topics(info: dict) -> list[dict]:
         _make_topic(f"{n}에 대해 친구들은 어떤 경험과 고민을 가지고 있을까?", "국어", "비교", 3, reason, 5),
         _make_topic(f"{n}을 더 깊이 탐구하려면 어떤 자료와 질문이 필요할까?", subject, "자료", 3, reason, 5),
     ]
+    for index, item in enumerate(generic, start=len(curated)):
+        item["reason"] = _reason_for_single_topic(info, item["topic"], _topic_kind(item["topic"]), index)
     return curated + generic
 
 
