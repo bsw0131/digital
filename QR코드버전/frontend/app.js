@@ -411,23 +411,19 @@ async function initTeacherPage() {
   if (!document.getElementById('teacherLogin')) return;
   const status = await getTeacherPasswordStatus();
   updateTeacherPasswordStatus(status);
-  teacherPassword = sessionStorage.getItem('teacherPassword') || '';
   if (!status.has_password) {
     teacherPassword = '';
-    sessionStorage.setItem('teacherPassword', '');
+    sessionStorage.removeItem('teacherPassword');
     document.getElementById('teacherLogin')?.classList.add('hidden');
     document.getElementById('dash')?.classList.remove('hidden');
     await loadDashboard();
     return;
   }
-  if (teacherPassword) {
-    const res = await post('/api/teacher/login', { password: teacherPassword });
-    if (res.ok) {
-      document.getElementById('teacherLogin')?.classList.add('hidden');
-      document.getElementById('dash')?.classList.remove('hidden');
-      await loadDashboard();
-    }
-  }
+  teacherPassword = '';
+  sessionStorage.removeItem('teacherPassword');
+  document.getElementById('teacherLogin')?.classList.remove('hidden');
+  document.getElementById('dash')?.classList.add('hidden');
+  document.getElementById('teacherPw')?.focus();
 }
 
 async function showTeacherPasswordPanel() {
@@ -455,14 +451,15 @@ async function setTeacherPassword() {
   };
   const res = await post('/api/teacher/password', payload);
   if (!res.ok) return alert(res.detail === 'invalid teacher password' ? '현재 비밀번호가 올바르지 않습니다.' : '비밀번호 저장에 실패했습니다.');
-  teacherPassword = password;
-  sessionStorage.setItem('teacherPassword', password);
+  teacherPassword = '';
+  sessionStorage.removeItem('teacherPassword');
   updateTeacherPasswordStatus(res);
-  hideTeacherPasswordPanel();
-  document.getElementById('teacherLogin')?.classList.add('hidden');
-  document.getElementById('dash')?.classList.remove('hidden');
-  alert('교사 비밀번호가 저장되었습니다.');
-  await loadDashboard();
+  document.getElementById('teacherPasswordPanel')?.classList.add('hidden');
+  document.getElementById('dash')?.classList.add('hidden');
+  document.getElementById('teacherLogin')?.classList.remove('hidden');
+  setValue('teacherPw', '');
+  alert('교사 비밀번호가 저장되었습니다. 새 비밀번호로 로그인하세요.');
+  document.getElementById('teacherPw')?.focus();
 }
 
 async function recoverTeacherPassword() {
