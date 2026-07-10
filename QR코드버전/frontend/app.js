@@ -409,6 +409,25 @@ function updateTeacherPasswordStatus(status) {
 
 async function initTeacherPage() {
   if (!document.getElementById('teacherLogin')) return;
+  if (document.getElementById('teacherModeSelect')) {
+    document.getElementById('teacherModeSelect')?.classList.remove('hidden');
+    document.getElementById('teacherLogin')?.classList.add('hidden');
+    document.getElementById('dash')?.classList.add('hidden');
+    return;
+  }
+  await startOfflineTeacherMode();
+}
+
+function chooseTeacherMode(mode) {
+  if (mode === 'ai') {
+    window.location.href = 'ai-settings.html';
+    return;
+  }
+  startOfflineTeacherMode();
+}
+
+async function startOfflineTeacherMode() {
+  document.getElementById('teacherModeSelect')?.classList.add('hidden');
   const status = await getTeacherPasswordStatus();
   updateTeacherPasswordStatus(status);
   if (!status.has_password) {
