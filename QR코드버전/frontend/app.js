@@ -397,25 +397,38 @@ function updateTeacherPasswordStatus(status) {
   const text = document.getElementById('teacherPasswordStatus');
   if (text) {
     text.innerText = status.has_password
-      ? '설정된 교사 비밀번호로 로그인하세요.'
+      ? '교사 피드백을 보려면 비밀번호를 입력하세요.'
       : '현재 교사 비밀번호가 없습니다. 바로 대시보드를 열었습니다.';
   }
   const currentInput = document.getElementById('currentTeacherPw');
   const currentLabel = document.getElementById('currentTeacherPwLabel');
   currentInput?.classList.toggle('hidden', !status.has_password);
   currentLabel?.classList.toggle('hidden', !status.has_password);
-  document.getElementById('teacherRecoverPanel')?.classList.toggle('hidden', !status.has_password || !status.has_hint);
+  document.getElementById('teacherHintBtn')?.classList.toggle('hidden', !status.has_password || !status.has_hint);
+  document.getElementById('initialPasswordSetupBtn')?.classList.toggle('hidden', !!status.has_password);
+  document.getElementById('passwordActionRow')?.classList.toggle('hidden', !!status.has_password);
+  document.getElementById('initialPasswordNote')?.classList.toggle('hidden', !!status.has_password);
+  document.getElementById('teacherRecoverPanel')?.classList.add('hidden');
 }
 
 async function initTeacherPage() {
   if (!document.getElementById('teacherLogin')) return;
-  if (document.getElementById('teacherModeSelect')) {
-    document.getElementById('teacherModeSelect')?.classList.remove('hidden');
-    document.getElementById('teacherLogin')?.classList.add('hidden');
+  const status = await getTeacherPasswordStatus();
+  updateTeacherPasswordStatus(status);
+  teacherPassword = '';
+  sessionStorage.removeItem('teacherPassword');
+  if (status.has_password) {
+    document.getElementById('teacherModeSelect')?.classList.add('hidden');
+    document.getElementById('teacherLogin')?.classList.remove('hidden');
+    document.getElementById('teacherPasswordPanel')?.classList.add('hidden');
+    document.getElementById('teacherRecoverPanel')?.classList.add('hidden');
     document.getElementById('dash')?.classList.add('hidden');
+    document.getElementById('teacherPw')?.focus();
     return;
   }
-  await startOfflineTeacherMode();
+  document.getElementById('teacherModeSelect')?.classList.remove('hidden');
+  document.getElementById('teacherLogin')?.classList.add('hidden');
+  document.getElementById('dash')?.classList.add('hidden');
 }
 
 function chooseTeacherMode(mode) {
@@ -448,6 +461,12 @@ async function startOfflineTeacherMode() {
 async function showTeacherPasswordPanel() {
   const status = await getTeacherPasswordStatus();
   updateTeacherPasswordStatus(status);
+  if (status.has_password && document.getElementById('dash')?.classList.contains('hidden')) {
+    alert('비밀번호 변경은 교사 로그인 후 사용할 수 있습니다.');
+    document.getElementById('teacherPasswordPanel')?.classList.add('hidden');
+    document.getElementById('teacherPw')?.focus();
+    return;
+  }
   document.getElementById('teacherLogin')?.classList.remove('hidden');
   document.getElementById('teacherPasswordPanel')?.classList.remove('hidden');
   document.getElementById('newTeacherPw')?.focus();
@@ -491,6 +510,14 @@ async function recoverTeacherPassword() {
     return;
   }
   if (result) result.innerText = `비밀번호: ${res.password}`;
+}
+
+async function showTeacherHintPanel() {
+  const status = await getTeacherPasswordStatus();
+  updateTeacherPasswordStatus(status);
+  if (!status.has_hint) return alert('저장된 비밀번호 힌트가 없습니다.');
+  document.getElementById('teacherRecoverPanel')?.classList.remove('hidden');
+  document.getElementById('teacherRecoverHint')?.focus();
 }
 
 async function teacherLogin() {

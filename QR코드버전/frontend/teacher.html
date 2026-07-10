@@ -17,6 +17,7 @@
     .password-setup-btn:hover{box-shadow:0 16px 28px rgba(49,87,213,.24)}
     .password-setup-btn.compact{min-height:54px;font-size:16px}
     .login-row{padding-top:10px;border-top:1px solid var(--line)}
+    .login-only-actions{display:flex;gap:10px;flex-wrap:wrap}
     @media(max-width:760px){.mode-choice-grid{grid-template-columns:1fr}.mode-choice-btn{min-height:104px}}
   </style>
 </head>
@@ -48,14 +49,17 @@
     <section class="card hidden" id="teacherLogin">
       <h2>교사 로그인</h2>
       <p class="muted" id="teacherPasswordStatus">비밀번호 설정 상태를 확인하고 있습니다.</p>
-      <div class="password-action-row">
-        <button class="btn password-setup-btn" onclick="showTeacherPasswordPanel()">비밀번호 설정</button>
+      <div class="password-action-row" id="passwordActionRow">
+        <button class="btn password-setup-btn" id="initialPasswordSetupBtn" onclick="showTeacherPasswordPanel()">비밀번호 설정</button>
       </div>
       <div class="row login-row">
         <input class="input" id="teacherPw" type="password" placeholder="비밀번호">
-        <button class="btn" onclick="teacherLogin()">로그인</button>
+        <div class="login-only-actions">
+          <button class="btn" onclick="teacherLogin()">로그인</button>
+          <button class="btn secondary" id="teacherHintBtn" onclick="showTeacherHintPanel()">힌트 확인</button>
+        </div>
       </div>
-      <p class="muted">처음 실행할 때는 교사 비밀번호가 없습니다.</p>
+      <p class="muted" id="initialPasswordNote">처음 실행할 때는 교사 비밀번호가 없습니다.</p>
 
       <div class="auth-panel hidden" id="teacherPasswordPanel">
         <h3>비밀번호 설정</h3>
@@ -71,7 +75,7 @@
         </div>
       </div>
 
-      <div class="auth-panel" id="teacherRecoverPanel">
+      <div class="auth-panel hidden" id="teacherRecoverPanel">
         <h3>비밀번호 찾기</h3>
         <div class="row">
           <input class="input" id="teacherRecoverHint" placeholder="설정한 힌트를 입력하세요">
