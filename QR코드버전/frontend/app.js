@@ -19,6 +19,7 @@ window.onload = () => {
   initTeacherPage();
   initWizardPage();
   initAiSettingsPage();
+  initAiSettingsInputs();
   initInternetStatus();
 };
 
@@ -578,6 +579,16 @@ async function loadAiSettings() {
   const keyHint = document.getElementById('aiKeyHint');
   if (keyHint) keyHint.innerText = res.has_api_key ? `저장된 키: ${res.masked_api_key} (${res.key_source})` : '저장된 API 키가 없습니다.';
   if (status) status.innerText = res.online_ai_enabled && res.has_api_key ? '온라인 AI 사용 중입니다.' : '오프라인 추천 엔진을 사용 중입니다.';
+}
+
+function initAiSettingsInputs() {
+  const keyInput = document.getElementById('aiApiKey');
+  const enabled = document.getElementById('onlineAiEnabled');
+  if (!keyInput || !enabled || keyInput.dataset.boundAutoEnable) return;
+  keyInput.dataset.boundAutoEnable = '1';
+  keyInput.addEventListener('input', () => {
+    if (keyInput.value.trim()) enabled.checked = true;
+  });
 }
 
 async function saveAiSettings() {

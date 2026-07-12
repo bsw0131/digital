@@ -101,7 +101,7 @@ def save_ai_settings(online_ai_enabled: bool, openai_api_key: str = "", clear_ap
     elif "openai_api_key" not in current:
         current["openai_api_key"] = ""
 
-    current["online_ai_enabled"] = bool(online_ai_enabled)
+    current["online_ai_enabled"] = bool(online_ai_enabled or (api_key and not clear_api_key))
     current["model"] = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
     _write_file(current)
     return get_ai_settings_public()
