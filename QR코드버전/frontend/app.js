@@ -569,7 +569,7 @@ async function loadAiSettings() {
     if (status) status.innerText = 'AI 설정을 불러오지 못했습니다.';
     return;
   }
-  setValue('aiModel', res.model || 'gpt-4o-mini');
+  setValue('aiModel', res.model || 'gpt-5.6-terra');
   const enabled = document.getElementById('onlineAiEnabled');
   const clear = document.getElementById('clearAiKey');
   const keyInput = document.getElementById('aiApiKey');
@@ -593,7 +593,7 @@ function initAiSettingsInputs() {
 
 async function saveAiSettings() {
   if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
-  const payload = { password: teacherPassword, online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked, openai_api_key: valueOf('aiApiKey'), clear_api_key: !!document.getElementById('clearAiKey')?.checked, model: valueOf('aiModel') || 'gpt-4o-mini' };
+  const payload = { password: teacherPassword, online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked, openai_api_key: valueOf('aiApiKey'), clear_api_key: !!document.getElementById('clearAiKey')?.checked, model: valueOf('aiModel') || 'gpt-5.6-terra' };
   const res = await post('/api/teacher/ai-settings/save', payload);
   if (!res.ok) return alert('AI 설정 저장에 실패했습니다.');
   alert('AI 설정이 저장되었습니다.');

@@ -5,7 +5,7 @@ from pathlib import Path
 from database import DATA_DIR
 
 SETTINGS_PATH = DATA_DIR / "settings.json"
-DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL = "gpt-5.6-terra"
 
 
 def _read_file() -> dict:

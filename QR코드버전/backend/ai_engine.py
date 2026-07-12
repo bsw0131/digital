@@ -21,7 +21,7 @@ def get_online_config() -> dict:
     return {
         "enabled": bool(settings.get("online_ai_enabled")),
         "api_key": settings.get("openai_api_key", ""),
-        "model": settings.get("model") or "gpt-4o-mini",
+        "model": settings.get("model") or "gpt-5.6-terra",
     }
 
 
