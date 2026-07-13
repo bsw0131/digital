@@ -1,5 +1,0 @@
-<!doctype html>
-<html lang="ko">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>교사 - AI 탐구메이트</title><link rel="stylesheet" href="style.css"></head>
-<body><main class="wrap"><div class="topbar"><a href="index.html">처음으로</a><a class="badge" href="ai-settings.html">AI 설정</a></div><h1>교사 대시보드</h1><section class="card" id="teacherLogin"><h2>교사 로그인</h2><div class="row"><input class="input" id="teacherPw" type="password" placeholder="비밀번호"><button class="btn" onclick="teacherLogin()">로그인</button></div><p class="muted">기본 비밀번호: teacher1234</p></section><section class="card hidden" id="dash"><div class="section-title"><h2>학생 탐구 현황</h2><div class="row no-print"><button class="btn secondary" onclick="loadDashboard()">새로고침</button><button class="btn secondary" onclick="saveDashboardPdf()">PDF로 저장</button><button class="btn danger" onclick="resetStudentData()">학생자료 초기화</button></div></div><div id="dashboard"></div></section></main><script src="app.js"></script></body>
-</html>
