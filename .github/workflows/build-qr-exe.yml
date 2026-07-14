@@ -1,4 +1,5 @@
 name: Build QR classroom EXE
+# Trigger simplified teacher login build.
 
 on:
   push:
