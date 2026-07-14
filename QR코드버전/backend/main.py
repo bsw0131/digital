@@ -160,6 +160,8 @@ def set_class_mode(req: ClassModeReq, request: Request):
         settings = set_ai_mode_enabled(req.enabled)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
     return {
         "ok": True,
         "ai_mode_active": bool(settings["online_ai_enabled"] and settings["has_api_key"]),
@@ -488,7 +490,12 @@ def get_ai_settings(req: TeacherAuthReq):
 @app.post("/api/teacher/ai-settings/save")
 def save_teacher_ai_settings(req: AiSettingsReq):
     require_teacher(req.password)
-    settings = save_ai_settings(req.online_ai_enabled, req.openai_api_key, req.clear_api_key)
+    try:
+        settings = save_ai_settings(req.online_ai_enabled, req.openai_api_key, req.clear_api_key)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
     return {"ok": True, "settings": settings}
 
 
