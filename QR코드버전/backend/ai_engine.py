@@ -1,4 +1,5 @@
 import json
+from functools import lru_cache
 
 from dotenv import load_dotenv
 
@@ -11,7 +12,7 @@ from offline_engine import (
     make_survey,
     recommend_topics,
 )
-from settings_store import get_ai_settings_private
+from settings_store import DEFAULT_MODEL, get_ai_settings_private
 
 load_dotenv()
 
@@ -21,7 +22,7 @@ def get_online_config() -> dict:
     return {
         "enabled": bool(settings.get("online_ai_enabled")),
         "api_key": settings.get("openai_api_key", ""),
-        "model": settings.get("model") or "gpt-5.6-terra",
+        "model": DEFAULT_MODEL,
     }
 
 
@@ -30,10 +31,15 @@ def has_api_key() -> bool:
     return bool(config["enabled"] and config["api_key"])
 
 
-def _online_client(config: dict):
+@lru_cache(maxsize=2)
+def _cached_online_client(api_key: str):
     from openai import OpenAI
 
-    return OpenAI(api_key=config["api_key"])
+    return OpenAI(api_key=api_key, timeout=30.0, max_retries=1)
+
+
+def _online_client(config: dict):
+    return _cached_online_client(config["api_key"])
 
 
 def _clean_json_text(text: str) -> str:
@@ -132,6 +138,7 @@ fit.total 점수가 높은 순서로 정렬하라.
             model=config["model"],
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
+            max_tokens=2800,
         )
         text = res.choices[0].message.content.strip().replace("```json", "").replace("```", "")
         items = _normalize_recommendation_scores(json.loads(text))
