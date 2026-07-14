@@ -1,4 +1,5 @@
 name: Build QR classroom EXE
+# Temporary workflow for the requested Windows rebuild.
 
 on:
   workflow_dispatch:
