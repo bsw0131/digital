@@ -615,11 +615,31 @@ function initAiSettingsInputs() {
 
 async function saveAiSettings() {
   if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
+  const button = document.getElementById('saveAiSettingsBtn');
+  const status = document.getElementById('aiSettingsStatus');
   const payload = { password: teacherPassword, online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked, openai_api_key: valueOf('aiApiKey'), clear_api_key: !!document.getElementById('clearAiKey')?.checked };
-  const res = await post('/api/teacher/ai-settings/save', payload);
-  if (!res.ok) return alert('AI 설정 저장에 실패했습니다.');
-  alert('AI 설정이 저장되었습니다.');
-  await loadAiSettings();
+  if (button) {
+    button.disabled = true;
+    button.innerText = 'API 키 확인 중...';
+  }
+  if (status) status.innerText = 'OpenAI 서버에서 API 키의 유효성을 확인하고 있습니다.';
+  try {
+    const res = await post('/api/teacher/ai-settings/save', payload);
+    if (!res.ok) {
+      if (status) status.innerText = res.detail || 'API 키 확인에 실패했습니다.';
+      return alert(res.detail || 'AI 설정 저장에 실패했습니다.');
+    }
+    alert('유효한 API 키가 확인되어 AI 설정을 저장했습니다.');
+    await loadAiSettings();
+  } catch (error) {
+    if (status) status.innerText = 'API 키 확인 중 연결 오류가 발생했습니다.';
+    alert('OpenAI 서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요.');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerText = 'API 키 확인 후 저장';
+    }
+  }
 }
 
 function renderUpdateHistory(updates = []) {
