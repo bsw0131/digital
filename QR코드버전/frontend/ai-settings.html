@@ -55,7 +55,7 @@
 
           <label class="field-label" for="aiApiKey">OpenAI API 키</label>
           <input class="input" id="aiApiKey" type="password" placeholder="sk-... 새 키를 입력하면 AI모드가 켜집니다.">
-          <p class="muted" id="aiKeyHint">저장된 키는 학생 화면에 보이지 않습니다.</p>
+          <p class="muted" id="aiKeyHint">입력한 키는 OpenAI 인증을 통과한 경우에만 저장됩니다.</p>
 
           <label class="toggle-row small-toggle">
             <input type="checkbox" id="clearAiKey">
@@ -63,7 +63,7 @@
           </label>
 
           <div class="row tools">
-            <button class="btn" onclick="saveAiSettings()">AI 설정 저장</button>
+            <button class="btn" id="saveAiSettingsBtn" onclick="saveAiSettings()">API 키 확인 후 저장</button>
           </div>
         </div>
 
