@@ -32,7 +32,11 @@
       <p class="muted">가장 좋은 추천을 받으려면 관심사 1개를 구체적으로 입력하세요. 2개를 입력하면 잘 어울리는 경우에는 융합하고, 애매하면 관심사별 좋은 주제를 나눠 추천합니다.</p>
       <div id="tags" class="tags"></div>
       <input class="input" id="detail" placeholder="직접 입력 예: 원주율 또는 여행, 음식">
-      <button class="btn" onclick="recommend()">탐구주제 추천받기</button>
+      <button class="btn" id="recommendBtn" onclick="recommend()">탐구주제 추천받기</button>
+      <div class="ai-loading hidden" id="recommendLoading" role="status" aria-live="polite">
+        <span class="loading-hourglass" aria-hidden="true">⌛</span>
+        <div><strong>AI가 탐구주제를 만들고 있습니다.</strong><p><span id="recommendElapsed">0</span>초 경과 · 보통 10~20초 정도 걸립니다. 화면을 그대로 두고 잠시 기다려 주세요.</p></div>
+      </div>
     </section>
 
     <section class="card hidden" id="customTopicBox">
