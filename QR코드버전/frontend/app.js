@@ -185,13 +185,40 @@ async function recommend() {
   const { detail, detailItems, tagText, queryText } = getInterestQuery();
   const error = validateInterestSelection(detailItems);
   if (error) return alert(error);
-  const res = await post('/api/recommend', { tag: tagText, detail });
-  recommendedItems = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0)).slice(0, RECOMMEND_MAX_ITEMS);
-  recommendationPage = 0;
-  document.getElementById('recommendBox').classList.remove('hidden');
-  const mode = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
-  document.getElementById('modeText').innerText = `${mode} ${queryText} 기준으로 관련 주제를 점수가 높은 순서대로 5개씩 보여줍니다.`;
-  renderRecommendations();
+
+  const loading = document.getElementById('recommendLoading');
+  const elapsed = document.getElementById('recommendElapsed');
+  const button = document.getElementById('recommendBtn');
+  const startedAt = Date.now();
+  if (loading) loading.classList.remove('hidden');
+  if (elapsed) elapsed.innerText = '0';
+  if (button) {
+    button.disabled = true;
+    button.innerText = 'AI 추천 생성 중...';
+  }
+  const timer = setInterval(() => {
+    if (elapsed) elapsed.innerText = String(Math.floor((Date.now() - startedAt) / 1000));
+  }, 1000);
+
+  try {
+    const res = await post('/api/recommend', { tag: tagText, detail });
+    recommendedItems = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0)).slice(0, RECOMMEND_MAX_ITEMS);
+    recommendationPage = 0;
+    document.getElementById('recommendBox').classList.remove('hidden');
+    const mode = res.mode === 'online' ? '온라인 AI 추천 결과입니다.' : '오프라인 추천 엔진 결과입니다.';
+    document.getElementById('modeText').innerText = `${mode} ${queryText} 기준으로 관련 주제를 점수가 높은 순서대로 5개씩 보여줍니다.`;
+    renderRecommendations();
+    document.getElementById('recommendBox')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (error) {
+    alert('추천 결과를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.');
+  } finally {
+    clearInterval(timer);
+    if (loading) loading.classList.add('hidden');
+    if (button) {
+      button.disabled = false;
+      button.innerText = '탐구주제 추천받기';
+    }
+  }
 }
 
 function renderRecommendations() {
@@ -569,7 +596,6 @@ async function loadAiSettings() {
     if (status) status.innerText = 'AI 설정을 불러오지 못했습니다.';
     return;
   }
-  setValue('aiModel', res.model || 'gpt-5.6-terra');
   const enabled = document.getElementById('onlineAiEnabled');
   const clear = document.getElementById('clearAiKey');
   const keyInput = document.getElementById('aiApiKey');
@@ -593,7 +619,7 @@ function initAiSettingsInputs() {
 
 async function saveAiSettings() {
   if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
-  const payload = { password: teacherPassword, online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked, openai_api_key: valueOf('aiApiKey'), clear_api_key: !!document.getElementById('clearAiKey')?.checked, model: valueOf('aiModel') || 'gpt-5.6-terra' };
+  const payload = { password: teacherPassword, online_ai_enabled: !!document.getElementById('onlineAiEnabled')?.checked, openai_api_key: valueOf('aiApiKey'), clear_api_key: !!document.getElementById('clearAiKey')?.checked };
   const res = await post('/api/teacher/ai-settings/save', payload);
   if (!res.ok) return alert('AI 설정 저장에 실패했습니다.');
   alert('AI 설정이 저장되었습니다.');
