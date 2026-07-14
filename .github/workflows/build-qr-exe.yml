@@ -1,4 +1,5 @@
 name: Build QR classroom EXE
+# Triggered for the requested instant mode toggle build.
 
 on:
   push:
