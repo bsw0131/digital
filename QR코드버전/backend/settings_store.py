@@ -105,3 +105,14 @@ def save_ai_settings(online_ai_enabled: bool, openai_api_key: str = "", clear_ap
     current["model"] = DEFAULT_MODEL
     _write_file(current)
     return get_ai_settings_public()
+
+
+def set_ai_mode_enabled(enabled: bool) -> dict:
+    current = _read_file()
+    has_api_key = bool(current.get("openai_api_key") or os.getenv("OPENAI_API_KEY"))
+    if enabled and not has_api_key:
+        raise ValueError("AI 모드를 사용하려면 API 키를 먼저 저장하세요.")
+    current["online_ai_enabled"] = bool(enabled and has_api_key)
+    current["model"] = DEFAULT_MODEL
+    _write_file(current)
+    return get_ai_settings_public()
