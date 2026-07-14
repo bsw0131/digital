@@ -5,7 +5,7 @@ from pathlib import Path
 from database import DATA_DIR
 
 SETTINGS_PATH = DATA_DIR / "settings.json"
-DEFAULT_MODEL = "gpt-5.6-terra"
+DEFAULT_MODEL = "gpt-5.6-luna"
 
 
 def _read_file() -> dict:
@@ -91,7 +91,7 @@ def get_ai_settings_public() -> dict:
     }
 
 
-def save_ai_settings(online_ai_enabled: bool, openai_api_key: str = "", clear_api_key: bool = False, model: str = DEFAULT_MODEL) -> dict:
+def save_ai_settings(online_ai_enabled: bool, openai_api_key: str = "", clear_api_key: bool = False) -> dict:
     current = _read_file()
     api_key = (openai_api_key or "").strip()
     if clear_api_key:
@@ -102,6 +102,6 @@ def save_ai_settings(online_ai_enabled: bool, openai_api_key: str = "", clear_ap
         current["openai_api_key"] = ""
 
     current["online_ai_enabled"] = bool(online_ai_enabled or (api_key and not clear_api_key))
-    current["model"] = (model or DEFAULT_MODEL).strip() or DEFAULT_MODEL
+    current["model"] = DEFAULT_MODEL
     _write_file(current)
     return get_ai_settings_public()
