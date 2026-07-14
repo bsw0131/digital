@@ -57,17 +57,6 @@
           <input class="input" id="aiApiKey" type="password" placeholder="sk-... 새 키를 입력하면 AI모드가 켜집니다.">
           <p class="muted" id="aiKeyHint">저장된 키는 학생 화면에 보이지 않습니다.</p>
 
-          <label class="field-label" for="aiModel">AI 모델</label>
-          <select class="model-select" id="aiModel">
-            <option value="gpt-5.6-terra">GPT-5.6 Terra - 추천</option>
-            <option value="gpt-5.6-sol">GPT-5.6 Sol - 최고 품질</option>
-            <option value="gpt-5.6-luna">GPT-5.6 Luna - 빠르고 경제적</option>
-            <option value="gpt-5">GPT-5 - 기본 GPT-5</option>
-            <option value="gpt-5-mini">GPT-5 Mini - 가벼운 작업</option>
-            <option value="gpt-4o-mini">GPT-4o Mini - 호환용</option>
-          </select>
-          <p class="muted model-note">탐구주제 추천, 계획서, 자료조사, 설문, 인터뷰, 보고서 초안 생성에 이 모델이 사용됩니다.</p>
-
           <label class="toggle-row small-toggle">
             <input type="checkbox" id="clearAiKey">
             <span>저장된 API 키 삭제</span>
@@ -79,16 +68,6 @@
         </div>
 
         <div class="guide-stack">
-          <aside class="info-panel">
-            <h3>모델 선택</h3>
-            <p class="muted">GPT-5.6 계열은 최신 GPT-5 모델군입니다. 수업에서는 품질과 속도의 균형이 좋은 Terra를 기본으로 두었습니다.</p>
-            <div class="model-cards">
-              <div class="model-card"><strong>Sol</strong><span>가장 높은 품질이 필요할 때 사용합니다.</span></div>
-              <div class="model-card"><strong>Terra</strong><span>수업용 추천 기본값입니다.</span></div>
-              <div class="model-card"><strong>Luna</strong><span>빠르고 비용을 아끼고 싶을 때 좋습니다.</span></div>
-            </div>
-          </aside>
-
           <aside class="info-panel">
             <h3>API 키 받는 방법</h3>
             <ol>
