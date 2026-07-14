@@ -4,7 +4,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +19,7 @@ from settings_store import (
     get_teacher_auth_public,
     recover_teacher_password,
     save_ai_settings,
+    set_ai_mode_enabled,
     save_teacher_password,
     verify_teacher_password,
 )
@@ -35,6 +36,10 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 class LoginReq(BaseModel):
     name: str
     student_no: str
+
+
+class ClassModeReq(BaseModel):
+    enabled: bool = False
 
 
 class RecommendReq(BaseModel):
@@ -134,12 +139,31 @@ def classroom_base_url() -> str:
 @app.get("/api/class-info")
 def class_info():
     base = classroom_base_url()
+    ai_settings = get_ai_settings_public()
     return {
         "base_url": base,
         "student_url": f"{base}/student.html",
         "teacher_url": f"{base}/teacher.html",
         "local_teacher_url": f"http://127.0.0.1:{os.getenv('AI_TAMGU_PORT', '8000')}/teacher.html",
         "class_url": f"{base}/class.html",
+        "ai_mode_active": bool(ai_settings["online_ai_enabled"] and ai_settings["has_api_key"]),
+        "has_api_key": ai_settings["has_api_key"],
+    }
+
+
+@app.post("/api/class-mode")
+def set_class_mode(req: ClassModeReq, request: Request):
+    client_host = request.client.host if request.client else ""
+    if client_host not in {"127.0.0.1", "::1"}:
+        raise HTTPException(403, "모드 전환은 교사 PC의 첫 화면에서만 가능합니다.")
+    try:
+        settings = set_ai_mode_enabled(req.enabled)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {
+        "ok": True,
+        "ai_mode_active": bool(settings["online_ai_enabled"] and settings["has_api_key"]),
+        "has_api_key": settings["has_api_key"],
     }
 
 
