@@ -73,7 +73,6 @@ class AiSettingsReq(BaseModel):
     online_ai_enabled: bool = False
     openai_api_key: str = ""
     clear_api_key: bool = False
-    model: str = "gpt-4o-mini"
 
 
 class TeacherAuthReq(BaseModel):
@@ -465,7 +464,7 @@ def get_ai_settings(req: TeacherAuthReq):
 @app.post("/api/teacher/ai-settings/save")
 def save_teacher_ai_settings(req: AiSettingsReq):
     require_teacher(req.password)
-    settings = save_ai_settings(req.online_ai_enabled, req.openai_api_key, req.clear_api_key, req.model)
+    settings = save_ai_settings(req.online_ai_enabled, req.openai_api_key, req.clear_api_key)
     return {"ok": True, "settings": settings}
 
 
