@@ -1,4 +1,5 @@
 name: Build QR classroom EXE
+# Trigger API key validation build.
 
 on:
   push:
