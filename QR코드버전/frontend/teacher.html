@@ -12,12 +12,12 @@
     .mode-choice-btn strong{font-size:24px}
     .mode-choice-btn span{font-size:14px;line-height:1.5;font-weight:800;opacity:.92}
     .mode-choice-btn.offline{background:#fff;color:#243969;border-color:#b9c9ff;box-shadow:0 10px 22px rgba(49,87,213,.10)}
-    .password-action-row{display:flex;margin:18px 0 14px}
-    .password-setup-btn{min-height:58px;padding:15px 26px;background:linear-gradient(135deg,#3b82f6,#3157d5);border-color:#93b4ff;color:#fff;font-size:18px;box-shadow:0 12px 24px rgba(49,87,213,.18)}
-    .password-setup-btn:hover{box-shadow:0 16px 28px rgba(49,87,213,.24)}
-    .password-setup-btn.compact{min-height:54px;font-size:16px}
-    .login-row{padding-top:10px;border-top:1px solid var(--line)}
+    .teacher-auth-card{max-width:680px;margin-inline:auto}
+    .auth-fields{display:grid;gap:12px;margin-top:18px}
+    .auth-fields .field-label{margin:0 0 -6px}
+    .login-row{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:center;margin-top:18px}
     .login-only-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .password-setup-btn.compact{min-height:48px;font-size:15px}
     @media(max-width:760px){.mode-choice-grid{grid-template-columns:1fr}.mode-choice-btn{min-height:104px}}
   </style>
 </head>
@@ -46,40 +46,38 @@
       </div>
     </section>
 
-    <section class="card hidden" id="teacherLogin">
-      <h2>교사 로그인</h2>
+    <section class="card hidden teacher-auth-card" id="teacherLogin">
+      <h2 id="teacherAuthTitle">교사 로그인</h2>
       <p class="muted" id="teacherPasswordStatus">비밀번호 설정 상태를 확인하고 있습니다.</p>
-      <div class="password-action-row" id="passwordActionRow">
-        <button class="btn password-setup-btn" id="initialPasswordSetupBtn" onclick="showTeacherPasswordPanel()">비밀번호 설정</button>
-      </div>
-      <div class="row login-row">
-        <input class="input" id="teacherPw" type="password" placeholder="비밀번호">
-        <div class="login-only-actions">
-          <button class="btn" onclick="teacherLogin()">로그인</button>
-          <button class="btn secondary" id="teacherHintBtn" onclick="showTeacherHintPanel()">힌트 확인</button>
+
+      <div id="teacherLoginFields">
+        <div class="login-row">
+          <input class="input" id="teacherPw" type="password" placeholder="교사 비밀번호" onkeydown="if(event.key==='Enter') teacherLogin()">
+          <div class="login-only-actions">
+            <button class="btn" onclick="teacherLogin()">로그인</button>
+            <button class="btn secondary hidden" id="teacherHintBtn" onclick="showTeacherHintPanel()">힌트 확인</button>
+          </div>
         </div>
       </div>
-      <p class="muted" id="initialPasswordNote">처음 실행할 때는 교사 비밀번호가 없습니다.</p>
 
-      <div class="auth-panel hidden" id="teacherPasswordPanel">
-        <h3>비밀번호 설정</h3>
+      <div class="auth-fields hidden" id="teacherPasswordPanel">
         <label class="field-label" for="newTeacherPw">새 비밀번호</label>
         <input class="input" id="newTeacherPw" type="password" placeholder="새 비밀번호">
-        <label class="field-label hidden" id="currentTeacherPwLabel" for="currentTeacherPw">현재 비밀번호</label>
-        <input class="input hidden" id="currentTeacherPw" type="password" placeholder="현재 비밀번호">
-        <label class="field-label" for="teacherPwHint">비밀번호 찾기 힌트</label>
+        <label class="field-label" for="confirmTeacherPw">비밀번호 확인</label>
+        <input class="input" id="confirmTeacherPw" type="password" placeholder="새 비밀번호를 한 번 더 입력하세요">
+        <label class="field-label" for="teacherPwHint">비밀번호 힌트 <span class="muted">(선택)</span></label>
         <input class="input" id="teacherPwHint" placeholder="예: 우리 반 이름">
         <div class="row tools">
-          <button class="btn" onclick="setTeacherPassword()">저장</button>
-          <button class="btn secondary" onclick="hideTeacherPasswordPanel()">닫기</button>
+          <button class="btn" onclick="setTeacherPassword()">저장하고 시작</button>
+          <button class="btn secondary hidden" id="cancelPasswordSetupBtn" onclick="hideTeacherPasswordPanel()">취소</button>
         </div>
       </div>
 
       <div class="auth-panel hidden" id="teacherRecoverPanel">
-        <h3>비밀번호 찾기</h3>
+        <h3>힌트로 비밀번호 확인</h3>
         <div class="row">
           <input class="input" id="teacherRecoverHint" placeholder="설정한 힌트를 입력하세요">
-          <button class="btn secondary" onclick="recoverTeacherPassword()">찾기</button>
+          <button class="btn secondary" onclick="recoverTeacherPassword()">확인</button>
         </div>
         <p class="muted" id="teacherRecoverResult"></p>
       </div>
@@ -90,7 +88,7 @@
         <h2>학생 탐구 현황</h2>
         <div class="row no-print">
           <button class="btn secondary" onclick="loadDashboard()">새로고침</button>
-          <button class="btn password-setup-btn compact" onclick="showTeacherPasswordPanel()">비밀번호 설정</button>
+          <button class="btn password-setup-btn compact" onclick="showTeacherPasswordPanel()">비밀번호 변경</button>
           <a class="btn secondary" href="ai-settings.html">AI 설정</a>
           <button class="btn secondary" onclick="saveDashboardPdf()">PDF로 저장</button>
           <button class="btn danger" onclick="resetStudentData()">학생자료 초기화</button>
