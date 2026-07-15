@@ -5,7 +5,7 @@ from pathlib import Path
 from database import DATA_DIR
 
 SETTINGS_PATH = DATA_DIR / "settings.json"
-DEFAULT_MODEL = "gpt-5.6-terra"
+DEFAULT_MODEL = "gpt-4.1"
 
 
 def _read_file() -> dict:
@@ -35,14 +35,19 @@ def validate_openai_api_key(api_key: str) -> None:
     from openai import APIConnectionError, AuthenticationError, OpenAI, OpenAIError, RateLimitError
 
     try:
-        client = OpenAI(api_key=value, timeout=12.0, max_retries=0)
-        client.models.list()
+        client = OpenAI(api_key=value, timeout=20.0, max_retries=0)
+        client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=[{"role": "user", "content": "API 연결 확인"}],
+            temperature=0,
+            max_tokens=1,
+        )
     except AuthenticationError as exc:
         raise ValueError("유효하지 않은 OpenAI API 키입니다. 키를 다시 확인하세요.") from exc
     except (APIConnectionError, RateLimitError) as exc:
         raise RuntimeError("OpenAI 서버에 연결하지 못해 키를 확인할 수 없습니다. 잠시 후 다시 시도하세요.") from exc
     except OpenAIError as exc:
-        raise RuntimeError("OpenAI API 키 확인에 실패했습니다. 계정 상태와 인터넷 연결을 확인하세요.") from exc
+        raise RuntimeError(f"OpenAI 생성 요청에 실패했습니다: {exc}") from exc
 
 
 def _mask_key(api_key: str) -> str:
