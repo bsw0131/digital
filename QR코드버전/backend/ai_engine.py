@@ -12,7 +12,7 @@ from offline_engine import (
     make_survey,
     recommend_topics,
 )
-from settings_store import DEFAULT_MODEL, get_ai_settings_private
+from settings_store import DEFAULT_MODEL, get_ai_settings_private, refresh_ai_model
 
 load_dotenv()
 
@@ -22,7 +22,7 @@ def get_online_config() -> dict:
     return {
         "enabled": bool(settings.get("online_ai_enabled")),
         "api_key": settings.get("openai_api_key", ""),
-        "model": DEFAULT_MODEL,
+        "model": settings.get("model") or DEFAULT_MODEL,
     }
 
 
@@ -46,19 +46,40 @@ def _clean_json_text(text: str) -> str:
     return (text or "").strip().replace("＇＇＇json", "").replace("＇＇＇", "").replace("```json", "").replace("```", "").strip()
 
 
+def _chat_completion(config: dict, messages: list[dict], max_tokens: int):
+    from openai import BadRequestError, OpenAIError
+
+    client = _online_client(config)
+
+    def create(model: str):
+        params = {"model": model, "messages": messages}
+        try:
+            return client.chat.completions.create(**params, max_completion_tokens=max_tokens)
+        except BadRequestError as exc:
+            message = str(exc).lower()
+            if "max_completion_tokens" not in message and "unsupported parameter" not in message:
+                raise
+            return client.chat.completions.create(**params, max_tokens=max_tokens)
+
+    try:
+        return create(config["model"])
+    except OpenAIError:
+        new_model = refresh_ai_model(config["api_key"], config.get("model", ""))
+        config["model"] = new_model
+        return create(new_model)
+
+
 def _online_text(system: str, prompt: str, temperature: float = 0.45, max_tokens: int = 3000) -> str:
     config = get_online_config()
     if not (config["enabled"] and config["api_key"]):
         raise RuntimeError("online ai disabled")
-    client = _online_client(config)
-    res = client.chat.completions.create(
-        model=config["model"],
-        messages=[
+    res = _chat_completion(
+        config,
+        [
             {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ],
-        temperature=temperature,
-        max_tokens=max_tokens,
+        max_tokens,
     )
     return (res.choices[0].message.content or "").strip()
 
@@ -163,12 +184,7 @@ def recommend(tag: str, detail: str):
   }
 ]
 """
-        res = client.chat.completions.create(
-            model=config["model"],
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            max_tokens=4200,
-        )
+        res = _chat_completion(config, [{"role": "user", "content": prompt}], 4200)
         text = _clean_json_text(res.choices[0].message.content)
         items = _normalize_recommendation_scores(json.loads(text))
         if len(items) < 10:
