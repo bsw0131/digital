@@ -1,5 +1,5 @@
 name: Build QR classroom EXE
-# AI-only custom topic and fidelity upgrade build.
+# AI-only custom topic and fidelity upgrade build. Trigger.
 
 on:
   push:
