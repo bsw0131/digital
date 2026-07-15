@@ -1,11 +1,13 @@
 import json
 import os
+import re
 from pathlib import Path
 
 from database import DATA_DIR
 
 SETTINGS_PATH = DATA_DIR / "settings.json"
 DEFAULT_MODEL = "gpt-4.1"
+MODEL_PREFERENCES = ["gpt-5.6-terra", "gpt-5.4-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"]
 
 
 def _read_file() -> dict:
@@ -23,31 +25,83 @@ def _write_file(settings: dict) -> None:
 
 
 def _looks_like_openai_key(api_key: str) -> bool:
-    value = (api_key or "").strip()
-    return value.startswith("sk-") and len(value) >= 20
+    return len((api_key or "").strip()) >= 20
 
 
-def validate_openai_api_key(api_key: str) -> None:
+def _probe_chat_model(client, model: str) -> None:
+    from openai import BadRequestError
+
+    params = {
+        "model": model,
+        "messages": [{"role": "user", "content": "연결 확인"}],
+    }
+    try:
+        client.chat.completions.create(**params, max_completion_tokens=8)
+    except BadRequestError as exc:
+        message = str(exc).lower()
+        if "max_completion_tokens" not in message and "unsupported parameter" not in message:
+            raise
+        client.chat.completions.create(**params, max_tokens=8)
+
+
+def select_working_model(api_key: str, current_model: str = "") -> str:
     value = (api_key or "").strip()
     if not _looks_like_openai_key(value):
-        raise ValueError("OpenAI API 키 형식이 올바르지 않습니다. sk-로 시작하는 키를 입력하세요.")
+        raise ValueError("OpenAI API 키가 너무 짧거나 형식이 올바르지 않습니다.")
 
     from openai import APIConnectionError, AuthenticationError, OpenAI, OpenAIError, RateLimitError
 
+    client = OpenAI(api_key=value, timeout=25.0, max_retries=0)
     try:
-        client = OpenAI(api_key=value, timeout=20.0, max_retries=0)
-        client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=[{"role": "user", "content": "API 연결 확인"}],
-            temperature=0,
-            max_tokens=1,
-        )
+        available = {item.id for item in client.models.list().data}
     except AuthenticationError as exc:
         raise ValueError("유효하지 않은 OpenAI API 키입니다. 키를 다시 확인하세요.") from exc
     except (APIConnectionError, RateLimitError) as exc:
-        raise RuntimeError("OpenAI 서버에 연결하지 못해 키를 확인할 수 없습니다. 잠시 후 다시 시도하세요.") from exc
+        raise RuntimeError("OpenAI 서버에 연결하지 못해 모델을 확인할 수 없습니다. 잠시 후 다시 시도하세요.") from exc
     except OpenAIError as exc:
-        raise RuntimeError(f"OpenAI 생성 요청에 실패했습니다: {exc}") from exc
+        raise RuntimeError(f"OpenAI 모델 목록 확인에 실패했습니다: {exc}") from exc
+
+    candidates = []
+    for model in [current_model, *MODEL_PREFERENCES]:
+        if model and model in available and model not in candidates:
+            candidates.append(model)
+
+    discovered = sorted(
+        (
+            model
+            for model in available
+            if model.startswith("gpt-")
+            and not re.search(r"-\d{4}-\d{2}-\d{2}$", model)
+            and not any(word in model for word in ["audio", "realtime", "transcribe", "tts", "image", "search", "instruct"])
+        ),
+        reverse=True,
+    )
+    candidates.extend(model for model in discovered if model not in candidates)
+
+    last_error = None
+    for model in candidates:
+        try:
+            _probe_chat_model(client, model)
+            return model
+        except AuthenticationError as exc:
+            raise ValueError("유효하지 않은 OpenAI API 키입니다. 키를 다시 확인하세요.") from exc
+        except OpenAIError as exc:
+            last_error = exc
+
+    detail = f" 마지막 오류: {last_error}" if last_error else ""
+    raise RuntimeError("이 API 키로 사용할 수 있는 텍스트 생성 모델을 찾지 못했습니다." + detail)
+
+
+def validate_openai_api_key(api_key: str, current_model: str = "") -> str:
+    return select_working_model(api_key, current_model)
+
+
+def refresh_ai_model(api_key: str, current_model: str = "") -> str:
+    selected = select_working_model(api_key, current_model)
+    settings = _read_file()
+    settings["model"] = selected
+    _write_file(settings)
+    return selected
 
 
 def _mask_key(api_key: str) -> str:
@@ -134,14 +188,14 @@ def save_ai_settings(online_ai_enabled: bool, openai_api_key: str = "", clear_ap
         if api_key or online_ai_enabled:
             if not candidate_key:
                 raise ValueError("AI 모드를 사용하려면 OpenAI API 키를 입력하세요.")
-            validate_openai_api_key(candidate_key)
+            selected_model = validate_openai_api_key(candidate_key, current.get("model", ""))
         if api_key:
             current["openai_api_key"] = api_key
         elif "openai_api_key" not in current:
             current["openai_api_key"] = ""
         current["online_ai_enabled"] = bool(online_ai_enabled and candidate_key)
 
-    current["model"] = DEFAULT_MODEL
+    current["model"] = locals().get("selected_model", current.get("model") or DEFAULT_MODEL)
     _write_file(current)
     return get_ai_settings_public()
 
@@ -152,8 +206,8 @@ def set_ai_mode_enabled(enabled: bool) -> dict:
     if enabled:
         if not api_key:
             raise ValueError("AI 모드를 사용하려면 API 키를 먼저 저장하세요.")
-        validate_openai_api_key(api_key)
+        selected_model = validate_openai_api_key(api_key, current.get("model", ""))
     current["online_ai_enabled"] = bool(enabled and api_key)
-    current["model"] = DEFAULT_MODEL
+    current["model"] = locals().get("selected_model", current.get("model") or DEFAULT_MODEL)
     _write_file(current)
     return get_ai_settings_public()
