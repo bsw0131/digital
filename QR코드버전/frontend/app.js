@@ -7,6 +7,7 @@ let recommendedItems = [];
 let recommendationPage = 0;
 let lastDashboard = [];
 let teacherPassword = '';
+let studentAiModeActive = false;
 
 const TAGS = ['AI','스마트폰','유튜브','SNS','게임','웹툰','K-POP','영화','음악','스포츠','건강','수면','스트레스','음식','환경','기후변화','플라스틱','동물','생명윤리','과학','로봇','데이터','수학','학습법','독서','진로','친구관계','학교생활','소비습관','지역사회'];
 const WIZARD_PAGES = ['wizardPlan', 'wizardGuide', 'wizardSurvey', 'wizardInterview', 'wizardLog', 'wizardReport', 'wizardPrint'];
@@ -110,6 +111,23 @@ async function initInternetStatus() {
   window.addEventListener('offline', () => setInternetStatus(false));
 }
 
+async function refreshStudentAiMode() {
+  const box = document.getElementById('customTopicBox');
+  if (!box) return false;
+  try {
+    const res = await (await fetch('/api/class-info', { cache: 'no-store' })).json();
+    studentAiModeActive = !!res.ai_mode_active;
+  } catch (error) {
+    studentAiModeActive = false;
+  }
+  box.classList.toggle('hidden', !studentAiModeActive);
+  const input = document.getElementById('customTopic');
+  const button = box.querySelector('button');
+  if (input) input.disabled = !studentAiModeActive;
+  if (button) button.disabled = !studentAiModeActive;
+  return studentAiModeActive;
+}
+
 async function login() {
   const name = document.getElementById('name').value.trim();
   const student_no = document.getElementById('studentNo').value.trim();
@@ -117,7 +135,7 @@ async function login() {
   currentStudent = await post('/api/student/login', { name, student_no });
   document.getElementById('loginBox').classList.add('hidden');
   document.getElementById('interestBox').classList.remove('hidden');
-  document.getElementById('customTopicBox')?.classList.remove('hidden');
+  await refreshStudentAiMode();
   await loadMyProjects();
 }
 
@@ -261,18 +279,29 @@ async function startProject(item) {
 
 async function startCustomTopic() {
   if (!currentStudent) return alert('먼저 학번과 이름을 입력해 주세요.');
+  if (!(await refreshStudentAiMode())) return alert('직접 주제 입력은 AI 모드에서만 사용할 수 있습니다. 교사에게 AI 모드 활성화를 요청해 주세요.');
   const topic = valueOf('customTopic').trim();
-  if (topic.length < 5) return alert('탐구주제를 조금 더 구체적으로 입력해 주세요.');
+  if (topic.length < 8) return alert('대상, 핵심 개념 또는 비교 기준이 드러나도록 탐구주제를 조금 더 구체적으로 입력해 주세요.');
   const { detail, tagText } = getInterestQuery();
   const interest = detail || topic;
-  const res = await post('/api/projects', {
-    student_id: currentStudent.id,
-    tag: tagText || '직접 주제',
-    interest,
-    topic,
-    subject: '자율탐구',
-    fit_score: 80,
+  const response = await fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_id: currentStudent.id,
+      tag: tagText || '직접 주제',
+      interest,
+      topic,
+      subject: '자율탐구',
+      fit_score: 80,
+      custom_topic: true,
+    }),
   });
+  const res = await response.json();
+  if (!response.ok) {
+    await refreshStudentAiMode();
+    return alert(res.detail || 'AI 모드에서만 직접 주제로 시작할 수 있습니다.');
+  }
   window.location.href = `wizard.html?project_id=${res.project_id}`;
 }
 
