@@ -602,7 +602,7 @@ async function loadAiSettings() {
   if (clear) clear.checked = false;
   if (keyInput) keyInput.value = '';
   const keyHint = document.getElementById('aiKeyHint');
-  if (keyHint) keyHint.innerText = res.has_api_key ? `저장된 키: ${res.masked_api_key} (${res.key_source})` : '저장된 API 키가 없습니다.';
+  if (keyHint) keyHint.innerText = res.has_api_key ? `저장된 키: ${res.masked_api_key} · 자동 선택 모델: ${res.model}` : '저장된 API 키가 없습니다.';
   if (status) status.innerText = res.online_ai_enabled && res.has_api_key ? '온라인 AI 사용 중입니다.' : '오프라인 추천 엔진을 사용 중입니다.';
 }
 
@@ -632,7 +632,7 @@ async function saveAiSettings() {
       if (status) status.innerText = res.detail || 'API 키 확인에 실패했습니다.';
       return alert(res.detail || 'AI 설정 저장에 실패했습니다.');
     }
-    alert('유효한 API 키가 확인되어 AI 설정을 저장했습니다.');
+    alert(`API 연결을 확인했습니다. 사용 모델: ${res.settings?.model || '자동 선택'}`);
     await loadAiSettings();
   } catch (error) {
     if (status) status.innerText = 'API 키 확인 중 연결 오류가 발생했습니다.';
