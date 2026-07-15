@@ -1,5 +1,5 @@
 name: Build QR classroom EXE
-# Rebuild after topic-alignment quality upgrade.
+# Rebuild after topic-alignment quality upgrade. Trigger 2.
 
 on:
   push:
