@@ -54,6 +54,7 @@ class ProjectReq(BaseModel):
     topic: str
     subject: str = ""
     fit_score: int = 0
+    custom_topic: bool = False
 
 
 class UpdateProjectReq(BaseModel):
@@ -285,6 +286,10 @@ def recommend(req: RecommendReq):
 
 @app.post("/api/projects")
 def create_project(req: ProjectReq):
+    if req.custom_topic:
+        settings = get_ai_settings_public()
+        if not (settings["online_ai_enabled"] and settings["has_api_key"]):
+            raise HTTPException(403, "직접 주제 입력은 AI 모드에서만 사용할 수 있습니다.")
     plan_text = ai_engine.plan(req.topic)
     conn = get_conn()
     cur = conn.cursor()
