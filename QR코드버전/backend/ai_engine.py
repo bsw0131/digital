@@ -174,8 +174,12 @@ def recommend(tag: str, detail: str):
         if len(items) < 10:
             raise ValueError("AI response has too few recommendations")
         return {"mode": "online", "items": items[:15]}
-    except Exception:
-        return {"mode": "offline", "items": recommend_topics(tag, detail)}
+    except Exception as exc:
+        return {
+            "mode": "offline",
+            "items": recommend_topics(tag, detail),
+            "ai_error": f"OpenAI 생성 요청 실패 ({type(exc).__name__})",
+        }
 
 
 def plan(topic: str):
