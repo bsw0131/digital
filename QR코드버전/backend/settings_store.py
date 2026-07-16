@@ -82,7 +82,7 @@ def select_working_model(api_key: str, current_model: str = "", excluded_models=
             for model in available
             if model.startswith("gpt-")
             and not re.search(r"-\d{4}-\d{2}-\d{2}$", model)
-            and not any(word in model for word in ["audio", "realtime", "transcribe", "tts", "image", "search", "instruct"])
+            and not any(word in model for word in ["audio", "realtime", "transcribe", "tts", "image", "search", "instruct", "codex"])
         ),
         reverse=True,
     )
@@ -95,7 +95,7 @@ def select_working_model(api_key: str, current_model: str = "", excluded_models=
             return model
         except AuthenticationError as exc:
             raise ValueError("유효하지 않은 OpenAI API 키입니다. 키를 다시 확인하세요.") from exc
-        except OpenAIError as exc:
+        except (OpenAIError, RuntimeError) as exc:
             last_error = exc
 
     detail = f" 마지막 오류: {last_error}" if last_error else ""
