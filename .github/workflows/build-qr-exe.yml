@@ -1,5 +1,5 @@
 name: Build QR classroom EXE
-# Teacher authentication flow build.
+# Teacher authentication flow build. Trigger.
 
 on:
   push:
