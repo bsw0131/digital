@@ -468,30 +468,128 @@ async function saveProject(progress = autoProgress(), showAlert = false) {
   return res.json();
 }
 
+async function beginWizardGeneration(title, buttonId) {
+  let aiActive = false;
+  try {
+    const info = await (await fetch('/api/class-info', { cache: 'no-store' })).json();
+    aiActive = !!info.ai_mode_active;
+  } catch (error) {
+    aiActive = false;
+  }
+
+  const button = document.getElementById(buttonId);
+  const loading = document.getElementById('wizardAiLoading');
+  const titleBox = document.getElementById('wizardAiLoadingTitle');
+  const elapsed = document.getElementById('wizardAiElapsed');
+  const phase = document.getElementById('wizardAiPhase');
+  const startedAt = Date.now();
+  if (button) {
+    button.disabled = true;
+    button.dataset.originalText = button.innerText;
+    button.innerText = aiActive ? 'AI 생성 중...' : '생성 중...';
+  }
+  if (aiActive && loading) {
+    if (titleBox) titleBox.innerText = `AI가 ${title}을(를) 생성하고 있습니다.`;
+    if (elapsed) elapsed.innerText = '0';
+    if (phase) phase.innerText = '탐구 주제의 핵심 개념과 범위를 분석하고 있습니다.';
+    loading.classList.remove('hidden');
+    loading.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  const timer = aiActive ? setInterval(() => {
+    const seconds = Math.floor((Date.now() - startedAt) / 1000);
+    if (elapsed) elapsed.innerText = String(seconds);
+    if (phase) {
+      if (seconds >= 30) phase.innerText = '생성 결과를 점검하고 주제에 맞게 정리하고 있습니다.';
+      else if (seconds >= 15) phase.innerText = '질문과 근거, 탐구 방법을 서로 연결하고 있습니다.';
+    }
+  }, 1000) : null;
+  return { aiActive, button, loading, timer };
+}
+
+function endWizardGeneration(state) {
+  if (!state) return;
+  if (state.timer) clearInterval(state.timer);
+  if (state.loading) state.loading.classList.add('hidden');
+  if (state.button) {
+    state.button.disabled = false;
+    state.button.innerText = state.button.dataset.originalText || '다시 생성';
+  }
+}
+
+async function fetchGeneratedItems(suffix) {
+  const response = await fetch(`/api/projects/${currentProjectId}/${suffix}`);
+  let res = {};
+  try {
+    res = await response.json();
+  } catch (error) {
+    res = {};
+  }
+  if (!response.ok || !Array.isArray(res.items)) {
+    throw new Error(res.detail || '생성 결과를 불러오지 못했습니다.');
+  }
+  return res.items;
+}
+
 async function loadGuide() {
-  const res = await (await fetch(`/api/projects/${currentProjectId}/guide`)).json();
-  document.getElementById('guideOutput').innerHTML = `<div class="result"><h3>자료조사 가이드</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
-  await saveProject(autoProgress());
+  const state = await beginWizardGeneration('자료조사 가이드', 'guideGenerateBtn');
+  try {
+    const items = await fetchGeneratedItems('guide');
+    document.getElementById('guideOutput').innerHTML = `<div class="result"><h3>자료조사 가이드</h3><ol>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+    await saveProject(autoProgress());
+  } catch (error) {
+    alert(error.message || '자료조사 가이드 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+  } finally {
+    endWizardGeneration(state);
+  }
 }
 
 async function loadSurvey() {
-  const res = await (await fetch(`/api/projects/${currentProjectId}/survey`)).json();
-  document.getElementById('surveyOutput').innerHTML = `<div class="result"><h3>설문 문항</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
-  await saveProject(autoProgress());
+  const state = await beginWizardGeneration('설문 문항', 'surveyGenerateBtn');
+  try {
+    const items = await fetchGeneratedItems('survey');
+    document.getElementById('surveyOutput').innerHTML = `<div class="result"><h3>설문 문항</h3><ol>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+    await saveProject(autoProgress());
+  } catch (error) {
+    alert(error.message || '설문 문항 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+  } finally {
+    endWizardGeneration(state);
+  }
 }
 
 async function loadInterview() {
-  const res = await (await fetch(`/api/projects/${currentProjectId}/interview`)).json();
-  document.getElementById('interviewOutput').innerHTML = `<div class="result"><h3>인터뷰 질문</h3><ol>${res.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
-  await saveProject(autoProgress());
+  const state = await beginWizardGeneration('인터뷰 질문', 'interviewGenerateBtn');
+  try {
+    const items = await fetchGeneratedItems('interview');
+    document.getElementById('interviewOutput').innerHTML = `<div class="result"><h3>인터뷰 질문</h3><ol>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+    await saveProject(autoProgress());
+  } catch (error) {
+    alert(error.message || '인터뷰 질문 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+  } finally {
+    endWizardGeneration(state);
+  }
 }
 
 async function makeReport() {
-  await saveProject(80);
-  const res = await post(`/api/projects/${currentProjectId}/report`, {});
-  document.getElementById('reportOutput').innerHTML = `<pre>${esc(res.report)}</pre>`;
-  setWizardStep(5, 90);
-  await saveProject(90);
+  const state = await beginWizardGeneration('보고서 초안', 'reportGenerateBtn');
+  try {
+    await saveProject(80);
+    const response = await fetch(`/api/projects/${currentProjectId}/report`, { method: 'POST' });
+    let res = {};
+    try {
+      res = await response.json();
+    } catch (error) {
+      res = {};
+    }
+    if (!response.ok || !res.report) throw new Error(res.detail || '보고서 초안을 만들지 못했습니다.');
+    document.getElementById('reportOutput').innerHTML = `<pre>${esc(res.report)}</pre>`;
+    setWizardStep(5, 90);
+    await saveProject(90);
+  } catch (error) {
+    alert(error.message || '보고서 초안 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+  } finally {
+    endWizardGeneration(state);
+  }
 }
 
 function summarySection(title, text) {
