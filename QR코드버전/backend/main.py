@@ -14,10 +14,13 @@ import qrcode.image.svg
 
 import ai_engine
 from database import get_conn, init_db
+from offline_engine import make_plan as make_offline_plan
 from settings_store import (
     get_ai_settings_public,
+    get_ai_usage_stats,
     get_teacher_auth_public,
     recover_teacher_password,
+    reset_ai_usage_stats,
     save_ai_settings,
     set_ai_mode_enabled,
     save_teacher_password,
@@ -290,7 +293,7 @@ def create_project(req: ProjectReq):
         settings = get_ai_settings_public()
         if not (settings["online_ai_enabled"] and settings["has_api_key"]):
             raise HTTPException(403, "직접 주제 입력은 AI 모드에서만 사용할 수 있습니다.")
-    plan_text = ai_engine.plan(req.topic)
+    plan_text = make_offline_plan(req.topic) if req.custom_topic else ai_engine.plan(req.topic)
     conn = get_conn()
     cur = conn.cursor()
     timestamp = now_label()
@@ -502,6 +505,18 @@ def save_teacher_ai_settings(req: AiSettingsReq):
     except RuntimeError as exc:
         raise HTTPException(503, str(exc))
     return {"ok": True, "settings": settings}
+
+
+@app.post("/api/teacher/ai-usage")
+def teacher_ai_usage(req: TeacherAuthReq):
+    require_teacher(req.password)
+    return {**get_ai_usage_stats(), "cache": ai_engine.get_runtime_cache_stats()}
+
+
+@app.post("/api/teacher/ai-usage/reset")
+def teacher_ai_usage_reset(req: TeacherAuthReq):
+    require_teacher(req.password)
+    return {"ok": True, **reset_ai_usage_stats()}
 
 
 @app.get("/api/teacher/dashboard")
