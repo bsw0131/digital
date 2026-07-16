@@ -38,8 +38,17 @@ jobs:
           print("UI interests:", len(tags))
           '@ | python -
           Push-Location "QR코드버전/backend"
-          python smoke_test.py
+          python smoke_test.py 2>&1 | Tee-Object "../../qr-60-build-error.log"
+          $smokeExit = $LASTEXITCODE
           Pop-Location
+          if ($smokeExit -ne 0) {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "qr-60-build-error.log"
+            git commit -m "Capture QR 60 interest validation error [skip ci]"
+            git push
+            exit $smokeExit
+          }
       - name: Build QR executable
         shell: pwsh
         run: |
