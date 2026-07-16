@@ -1957,11 +1957,11 @@ GUIDE_PROFILES.extend([
 # 최종 탐구 생성기는 아래 필드를 공통으로 사용한다. 확장 프로필에도 단계별 산출물을 명시한다.
 for _profile in GUIDE_PROFILES:
     _profile.setdefault("target", "중·고등학생, 교사 또는 학교·지역의 관련 사례")
-    _profile.setdefault("field", _profile["method"])
-    _profile.setdefault(
-        "analysis",
-        f"{_profile['evidence']}를 기준으로 표를 만들고, 공통점·차이·예외와 그 이유를 해석한다.",
-    )
+    if "field" not in _profile:
+        _profile["field"] = _profile.get("method", "공공 자료와 학교·지역 사례를 같은 기준으로 조사한다.")
+    if "analysis" not in _profile:
+        _basis = _profile.get("evidence", "신뢰도, 관련성, 비교 조건, 실천 가능성")
+        _profile["analysis"] = f"{_basis}를 기준으로 표를 만들고, 공통점·차이·예외와 그 이유를 해석한다."
     _profile.setdefault(
         "survey",
         "경험 빈도와 현재 상태, 원인 인식, 영향, 개선안의 필요도·실천 의향을 한 문항에 한 가지씩 묻는다.",
