@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\smoke_test.py", line 7, in <module>
-    from offline_engine import (
-  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\offline_engine.py", line 1960, in <module>
-    _profile.setdefault("field", _profile["method"])
-                                 ~~~~~~~~^^^^^^^^^^
-KeyError: 'method'
