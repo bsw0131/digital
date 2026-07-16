@@ -7,3 +7,10 @@
 .loading-hourglass{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#fff;font-size:24px;animation:hourglass-turn 1.6s ease-in-out infinite}
 @keyframes hourglass-turn{0%,45%{transform:rotate(0)}55%,100%{transform:rotate(180deg)}}
 @media (prefers-reduced-motion:reduce){.loading-hourglass{animation:none}}
+
+
+.recommend-warning{display:flex;align-items:flex-start;gap:12px;margin:14px 0 18px;padding:14px 16px;border:1px solid #f2cf87;border-radius:14px;background:#fff9ec;color:#60450d;box-shadow:0 6px 18px rgba(122,83,12,.08)}
+.recommend-warning.hidden{display:none}
+.recommend-warning-icon{flex:0 0 28px;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#f4b740;color:#fff;font-size:18px;font-weight:900}
+.recommend-warning strong{display:block;margin:1px 0 4px;font-size:15px;color:#563d08}
+.recommend-warning p{margin:0;font-size:14px;line-height:1.55;color:#72591e}
