@@ -15,19 +15,26 @@ from offline_engine import (
 
 
 def assert_offline_generators():
-    interests = [
-        ("AI", ""),
-        ("환경", "플라스틱"),
-        ("스포츠", "수면"),
-        ("수학", "원주율"),
-        ("학교생활", "친구관계"),
-        ("진로", "로봇"),
+    base_interests = [
+        ("AI", ""), ("환경", "플라스틱"), ("스포츠", "수면"),
+        ("수학", "원주율"), ("학교생활", "친구관계"), ("진로", "로봇"),
     ]
+    added_interests = [
+        "코딩", "드론", "우주", "천문", "의학", "뇌과학", "심리", "반려동물",
+        "요리", "제과제빵", "사진", "디자인", "애니메이션", "드라마", "댄스", "악기",
+        "e스포츠", "자동차", "건축", "경제", "창업", "금융", "역사", "문화유산",
+        "언어", "영어", "글쓰기", "토론", "봉사활동", "안전",
+    ]
+    assert len(added_interests) == 30 and len(set(added_interests)) == 30
+    interests = base_interests + [(interest, "") for interest in added_interests]
     checked = 0
     for tag, detail in interests:
         items = recommend_topics(tag, detail)
         assert len(items) >= 10, (tag, detail, len(items))
-        for item in items[:10]:
+        sample_size = 3 if tag in added_interests else 10
+        if tag in added_interests:
+            assert all(tag in item["topic"] or tag == "뇌과학" and "뇌" in item["topic"] for item in items[:3]), tag
+        for item in items[:sample_size]:
             topic = item["topic"]
             plan = make_plan(topic)
             guide = make_research_guide(topic)
