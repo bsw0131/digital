@@ -69,6 +69,17 @@
 
         <div class="guide-stack">
           <aside class="info-panel">
+            <div class="section-title">
+              <h3>이 프로그램의 AI 토큰 사용량</h3>
+              <div class="row">
+                <button class="btn secondary" onclick="loadAiUsage()">새로고침</button>
+                <button class="btn secondary" onclick="resetAiUsage()">통계 초기화</button>
+              </div>
+            </div>
+            <p class="muted">API가 실제로 반환한 입력·출력 토큰과 캐시 재사용 횟수입니다. 직접 주제로 시작하는 단계는 로컬에서 처리되어 API 토큰을 사용하지 않습니다.</p>
+            <div id="aiUsageStats" class="output"><p class="muted">사용량을 불러오는 중입니다.</p></div>
+          </aside>
+          <aside class="info-panel">
             <h3>API 키 받는 방법</h3>
             <ol>
               <li>OpenAI 플랫폼에 로그인합니다.</li>
