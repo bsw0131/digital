@@ -1,5 +1,5 @@
 name: Audit and build QR classroom EXE
-# Token optimization regression build.
+# Token optimization regression build. Trigger.
 
 on:
   push:
