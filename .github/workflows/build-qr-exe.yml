@@ -1,5 +1,5 @@
 name: Audit and build QR classroom EXE
-# Full QR regression audit.
+# Full QR regression audit. Trigger.
 
 on:
   push:
