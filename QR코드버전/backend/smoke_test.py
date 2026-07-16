@@ -49,6 +49,7 @@ def assert_api_flow():
         database.DATA_DIR = data_dir
         database.DB_PATH = data_dir / "inquiry_mate.db"
         settings_store.SETTINGS_PATH = data_dir / "settings.json"
+        settings_store.USAGE_PATH = data_dir / "ai_usage.json"
 
         import main
 
@@ -103,6 +104,33 @@ def assert_api_flow():
             )
             assert created.status_code == 200, created.text
             project_id = created.json()["project_id"]
+
+            original_settings_reader = main.get_ai_settings_public
+            original_ai_plan = main.ai_engine.plan
+            main.get_ai_settings_public = lambda: {"online_ai_enabled": True, "has_api_key": True}
+            main.ai_engine.plan = lambda topic: (_ for _ in ()).throw(AssertionError("custom topic must not call OpenAI plan"))
+            custom = client.post(
+                "/api/projects",
+                json={
+                    "student_id": student_id,
+                    "tag": "직접 주제",
+                    "interest": "학교 숲",
+                    "topic": "학교 숲의 온도 저감 효과와 학생 휴식 공간 개선",
+                    "subject": "자율탐구",
+                    "fit_score": 80,
+                    "custom_topic": True,
+                },
+            )
+            main.get_ai_settings_public = original_settings_reader
+            main.ai_engine.plan = original_ai_plan
+            assert custom.status_code == 200, custom.text
+            custom_id = custom.json()["project_id"]
+            assert client.get(f"/api/projects/{custom_id}").json()["plan"]
+            assert client.delete(f"/api/projects/{custom_id}").status_code == 200
+
+            usage = client.post("/api/teacher/ai-usage", json={"password": "teacher1234"})
+            assert usage.status_code == 200
+            assert usage.json()["totals"]["api_calls"] == 0
 
             project = client.get(f"/api/projects/{project_id}")
             assert project.status_code == 200 and project.json()["plan"]
