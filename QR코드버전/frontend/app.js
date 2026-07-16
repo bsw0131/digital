@@ -809,6 +809,31 @@ async function loadAiSettings() {
   const keyHint = document.getElementById('aiKeyHint');
   if (keyHint) keyHint.innerText = res.has_api_key ? `저장된 키: ${res.masked_api_key} · 자동 선택 모델: ${res.model}` : '저장된 API 키가 없습니다.';
   if (status) status.innerText = res.online_ai_enabled && res.has_api_key ? '온라인 AI 사용 중입니다.' : '오프라인 추천 엔진을 사용 중입니다.';
+  await loadAiUsage();
+}
+
+async function loadAiUsage() {
+  if (!teacherPassword) return;
+  const box = document.getElementById('aiUsageStats');
+  if (!box) return;
+  const res = await post('/api/teacher/ai-usage', { password: teacherPassword });
+  if (res.detail) {
+    box.innerHTML = '<p class="muted">토큰 사용량을 불러오지 못했습니다.</p>';
+    return;
+  }
+  const totals = res.totals || {};
+  const operations = res.operations || {};
+  const labels = { recommend: '주제 추천', plan: 'AI 계획서', guide: '자료조사', survey: '설문', interview: '인터뷰', report: '보고서' };
+  const rows = Object.entries(operations).map(([key, value]) => `<tr><td>${esc(labels[key] || key)}</td><td>${Number(value.api_calls || 0).toLocaleString()}</td><td>${Number(value.input_tokens || 0).toLocaleString()}</td><td>${Number(value.output_tokens || 0).toLocaleString()}</td><td>${Number(value.cache_hits || 0).toLocaleString()}</td></tr>`).join('');
+  box.innerHTML = `<div class="fit-grid"><span>API 호출 <b>${Number(totals.api_calls || 0).toLocaleString()}회</b></span><span>입력 <b>${Number(totals.input_tokens || 0).toLocaleString()}토큰</b></span><span>출력 <b>${Number(totals.output_tokens || 0).toLocaleString()}토큰</b></span><span>캐시 절약 <b>${Number(totals.cache_hits || 0).toLocaleString()}회</b></span></div><div class="table-wrap"><table><thead><tr><th>기능</th><th>호출</th><th>입력 토큰</th><th>출력 토큰</th><th>캐시</th></tr></thead><tbody>${rows || '<tr><td colspan="5">아직 API 사용 기록이 없습니다.</td></tr>'}</tbody></table></div>`;
+}
+
+async function resetAiUsage() {
+  if (!teacherPassword) return alert('교사 로그인이 필요합니다.');
+  if (!confirm('이 프로그램에 기록된 AI 토큰 통계를 초기화할까요? OpenAI 계정의 실제 청구 기록은 삭제되지 않습니다.')) return;
+  const res = await post('/api/teacher/ai-usage/reset', { password: teacherPassword });
+  if (!res.ok) return alert(res.detail || '사용량 통계를 초기화하지 못했습니다.');
+  await loadAiUsage();
 }
 
 function initAiSettingsInputs() {
