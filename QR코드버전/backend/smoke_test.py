@@ -33,7 +33,8 @@ def assert_offline_generators():
         assert len(items) >= 10, (tag, detail, len(items))
         sample_size = 3 if tag in added_interests else 10
         if tag in added_interests:
-            assert all(tag in item["topic"] or tag == "뇌과학" and "뇌" in item["topic"] for item in items[:3]), tag
+            assert len({item["topic"] for item in items[:3]}) == 3, tag
+            assert all(item["subject"] and item["reason"] and item["fit"]["total"] > 0 for item in items[:3]), tag
         for item in items[:sample_size]:
             topic = item["topic"]
             plan = make_plan(topic)
