@@ -205,10 +205,12 @@ async function recommend() {
   if (error) return alert(error);
 
   const loading = document.getElementById('recommendLoading');
+  const warning = document.getElementById('recommendWarning');
   const elapsed = document.getElementById('recommendElapsed');
   const button = document.getElementById('recommendBtn');
   const startedAt = Date.now();
   if (loading) loading.classList.remove('hidden');
+  if (warning) warning.classList.add('hidden');
   if (elapsed) elapsed.innerText = '0';
   if (button) {
     button.disabled = true;
@@ -223,11 +225,9 @@ async function recommend() {
     recommendedItems = (res.items || []).sort((a, b) => (b.fit?.total || 0) - (a.fit?.total || 0)).slice(0, RECOMMEND_MAX_ITEMS);
     recommendationPage = 0;
     document.getElementById('recommendBox').classList.remove('hidden');
-    const mode = res.mode === 'online'
-      ? '온라인 AI 추천 결과입니다.'
-      : (res.ai_error ? `AI 호출에 실패해 오프라인 결과를 표시합니다. ${res.ai_error}` : '오프라인 추천 엔진 결과입니다.');
-    document.getElementById('modeText').innerText = `${mode} ${queryText} 기준으로 관련 주제를 점수가 높은 순서대로 5개씩 보여줍니다.`;
-    if (res.ai_error) alert('OpenAI 호출이 실패했습니다. AI 설정에서 API 키와 계정 사용 한도를 확인해 주세요.');
+    const mode = res.mode === 'online' ? '온라인 AI 추천' : '오프라인 추천';
+    document.getElementById('modeText').innerText = `${mode} · ${queryText} 기준 · 적합도 높은 순서로 5개씩 표시`;
+    if (warning) warning.classList.toggle('hidden', !res.ai_error);
     renderRecommendations();
     document.getElementById('recommendBox')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (error) {
