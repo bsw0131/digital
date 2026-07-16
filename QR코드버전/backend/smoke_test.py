@@ -43,6 +43,35 @@ def assert_offline_generators():
     return checked
 
 
+
+def assert_ai_recommend_contract():
+    import ai_engine
+    original_config = ai_engine.get_online_config
+    original_call = ai_engine._compact_call
+    fake_items = [
+        {
+            "topic": f"점검용 탐구 주제 {index}",
+            "subject": "사회",
+            "difficulty": "중",
+            "inquiry_type": "자료조사",
+            "duration": "3주",
+            "reason": "자료와 비교 기준을 확인한다.",
+            "fit": {"data_collection": 80, "survey": 60, "experiment": 20, "school_application": 70, "total": 70},
+        }
+        for index in range(15)
+    ]
+    ai_engine.get_online_config = lambda: {"enabled": True, "api_key": "sk-test-key-long-enough-value", "model": "test-model"}
+    ai_engine._compact_call = lambda *args, **kwargs: __import__("json").dumps(fake_items, ensure_ascii=False)
+    result = ai_engine.recommend("게임", "")
+    assert result["mode"] == "online" and len(result["items"]) == 15
+
+    ai_engine._compact_call = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("internal JSON { detail }"))
+    fallback = ai_engine.recommend("게임", "")
+    assert fallback["mode"] == "offline" and fallback.get("ai_error")
+    assert "internal JSON" not in fallback["ai_error"]
+    ai_engine.get_online_config = original_config
+    ai_engine._compact_call = original_call
+
 def assert_api_flow():
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = Path(temp_dir)
@@ -189,5 +218,6 @@ def assert_api_flow():
 
 if __name__ == "__main__":
     count = assert_offline_generators()
+    assert_ai_recommend_contract()
     assert_api_flow()
     print(f"QR smoke test passed: {count} offline topics and full API flow")
