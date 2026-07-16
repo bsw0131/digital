@@ -1,5 +1,5 @@
 name: Audit and build QR classroom EXE
-# Clean recommendation warning build.
+# Clean recommendation warning build. Trigger.
 
 on:
   push:
