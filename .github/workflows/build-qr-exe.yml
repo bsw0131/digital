@@ -1,5 +1,5 @@
 name: Build QR classroom EXE
-# Offline project start regression fix build.
+# Offline project start regression fix build. Trigger.
 
 on:
   push:
