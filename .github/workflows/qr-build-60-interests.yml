@@ -44,7 +44,7 @@ jobs:
           if ($smokeExit -ne 0) {
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add "qr-60-build-error.log"
+            git add -f "qr-60-build-error.log"
             git commit -m "Capture QR 60 interest validation error [skip ci]"
             git push
             exit $smokeExit
