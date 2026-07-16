@@ -1,14 +1,7 @@
 Traceback (most recent call last):
-  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\smoke_test.py", line 228, in <module>
-    count = assert_offline_generators()
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\smoke_test.py", line 40, in assert_offline_generators
-    plan = make_plan(topic)
-           ^^^^^^^^^^^^^^^^
-  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\offline_engine.py", line 1531, in make_plan
-    b = _alignment_blueprint(topic)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\offline_engine.py", line 1521, in _alignment_blueprint
-    method = f"{p['source']}\uc5d0\uc11c \ubc30\uacbd\uc744 \ud655\uc778\ud558\uace0, {p['target']}\uc744 \ub300\uc0c1\uc73c\ub85c \uad00\ucc30�\uc124\ubb38�\uc778\ud130\ubdf0 \uc911 \uc8fc\uc81c\uc5d0 \ub9de\ub294 \ubc29\ubc95\uc744 \uc120\ud0dd\ud55c\ub2e4."
-                                                   ~^^^^^^^^^^
-KeyError: 'target'
+  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\smoke_test.py", line 7, in <module>
+    from offline_engine import (
+  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\offline_engine.py", line 1960, in <module>
+    _profile.setdefault("field", _profile["method"])
+                                 ~~~~~~~~^^^^^^^^^^
+KeyError: 'method'
