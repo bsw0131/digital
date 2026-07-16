@@ -12,7 +12,7 @@ from offline_engine import (
     make_survey,
     recommend_topics,
 )
-from settings_store import DEFAULT_MODEL, get_ai_settings_private, refresh_ai_model
+from settings_store import DEFAULT_MODEL, get_ai_settings_private, record_ai_usage, refresh_ai_model
 
 load_dotenv()
 
@@ -440,3 +440,141 @@ def report(topic: str, plan_text: str, log: str):
     except Exception:
         pass
     return make_report(topic, plan_text, log)
+# === 저토큰 AI 실행 계층 (QR 전용) ===
+_COMPACT_SYSTEM = """대한민국 중·고등학생 탐구 코치다. 입력 주제의 핵심어·범위·근거·적합한 방법을 끝까지 유지한다. 학교에서 2~4주 안에 실행 가능하게 쓰고, 사실과 의견·상관과 인과를 구분한다. 개인정보·위험 활동을 피한다. 학생이 주지 않은 수치·결과·출처는 만들지 않는다. 설명은 짧고 구체적인 한국어로 쓴다."""
+_RESULT_CACHE = {}
+_RESULT_CACHE_LIMIT = 128
+
+
+def _cache_key(operation: str, config: dict, prompt: str) -> str:
+    import hashlib
+    key_hash = hashlib.sha256(config["api_key"].encode("utf-8")).hexdigest()[:12]
+    prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+    return f"{operation}:{config['model']}:{key_hash}:{prompt_hash}"
+
+
+def _compact_call(operation: str, prompt: str, max_tokens: int) -> str:
+    config = get_online_config()
+    if not (config["enabled"] and config["api_key"]):
+        raise RuntimeError("online ai disabled")
+    key = _cache_key(operation, config, prompt)
+    if key in _RESULT_CACHE:
+        record_ai_usage(operation, config["model"], cache_hit=True)
+        return _RESULT_CACHE[key]
+    response = _chat_completion(
+        config,
+        [{"role": "system", "content": _COMPACT_SYSTEM}, {"role": "user", "content": prompt}],
+        max_tokens,
+    )
+    text = (response.choices[0].message.content or "").strip()
+    record_ai_usage(operation, config["model"], response.usage)
+    if len(_RESULT_CACHE) >= _RESULT_CACHE_LIMIT:
+        _RESULT_CACHE.pop(next(iter(_RESULT_CACHE)))
+    _RESULT_CACHE[key] = text
+    return text
+
+
+def _compact_json_list(operation: str, prompt: str, count: int, max_tokens: int = 1500) -> list[str]:
+    text = _compact_call(operation, prompt, max_tokens)
+    data = json.loads(_clean_json_text(text))
+    if isinstance(data, dict):
+        data = data.get("items", [])
+    if not isinstance(data, list):
+        raise ValueError("AI response is not a list")
+    items = [str(item).strip() for item in data if str(item).strip()]
+    if len(items) < count:
+        raise ValueError("AI response has too few items")
+    return items[:count]
+
+
+def recommend(tag: str, detail: str):
+    config = get_online_config()
+    if not (config["enabled"] and config["api_key"]):
+        return {"mode": "offline", "items": recommend_topics(tag, detail)}
+    prompt = f"""관심사: {tag or '없음'} / 직접 입력: {detail or '없음'}
+서로 겹치지 않는 탐구주제 15개를 JSON 배열로만 출력하라.
+제목에는 대상·핵심 개념·비교/판단 기준이 드러나야 한다. 원리형은 설문으로 사실을 증명하지 말고 문헌·사례·모형을 쓴다. 자료분석, 설문/인터뷰, 관찰/비교, 안전한 실험, 개선안 유형을 섞는다.
+각 객체 키: topic, subject, difficulty(중|중상|상), inquiry_type, duration(2주|3주|4주), reason, fit.
+reason은 수집할 근거와 분석 기준을 1~2문장으로 쓴다. fit은 data_collection,survey,experiment,school_application,total을 0~100 정수로 넣는다."""
+    try:
+        text = _compact_call("recommend", prompt, 4300)
+        parsed = json.loads(_clean_json_text(text))
+        if isinstance(parsed, dict):
+            parsed = parsed.get("items") or parsed.get("topics") or []
+        items = _normalize_recommendation_scores(parsed)
+        if len(items) < 10:
+            raise ValueError("AI response has too few recommendations")
+        return {"mode": "online", "items": items[:15]}
+    except Exception as exc:
+        return {"mode": "offline", "items": recommend_topics(tag, detail),
+                "ai_error": f"OpenAI 생성 요청 실패 ({type(exc).__name__}: {str(exc)[:180]})"}
+
+
+def plan(topic: str):
+    prompt = f"""주제: {topic}
+실행 가능한 탐구계획서를 Markdown으로 작성하라. 다음만 포함한다.
+1 주제 핵심(핵심어·범위·주된 방법)
+2 동기 3문장
+3 핵심 질문 1개와 세부 질문 3개
+4 대상·표본·기간
+5 세부 질문별 필요 근거/수집법/분석 기준
+6 3주 일정
+7 윤리·한계
+8 최종 산출물.
+주제보다 넓은 일반론으로 바꾸지 말고 전문 용어는 짧게 풀이한다."""
+    try:
+        return _compact_call("plan", prompt, 1800)
+    except Exception:
+        return make_plan(topic)
+
+
+def guide(topic: str):
+    prompt = f"""주제: {topic}
+자료조사 가이드 7개를 JSON 문자열 배열로만 출력하라. 각 항목은 '단계 — 행동 — 산출물' 형식이다.
+순서: 범위·핵심어 정의, 검색어 4개, 공신력 있는 출처 3종, 신뢰도 확인, 세부 질문별 근거 추출, 표/그래프 분석, 결론·한계 점검. 각 문장에 이 주제의 구체적 핵심어를 사용하고 출처 기록 양식(기관, 제목, 날짜, URL)을 포함한다."""
+    try:
+        return _compact_json_list("guide", prompt, 7, 1300)
+    except Exception:
+        return make_research_guide(topic)
+
+
+def survey(topic: str):
+    prompt = f"""주제: {topic}
+설문 안내와 문항 7개를 JSON 문자열 배열로만 출력하라. 각 문항에 응답 형식·선택지·측정 기준을 함께 쓴다.
+구성: 익명 안내, 대상 조건, 행동/경험 2개, 원인/영향 2개, 서술형 1개. 한 문항에 한 내용만 묻는다. 원리·개념 주제라면 사실의 진위를 묻지 말고 이해도·오개념을 측정한다. 민감 개인정보는 묻지 않는다."""
+    try:
+        return _compact_json_list("survey", prompt, 7, 1300)
+    except Exception:
+        return make_survey(topic)
+
+
+def interview(topic: str):
+    prompt = f"""주제: {topic}
+인터뷰 안내와 질문 7개를 JSON 문자열 배열로만 출력하라.
+대상·동의 안내 후 구체적 경험→핵심 과정/원인→판단 근거→자료와 다른 점→예외→개선 제안 순으로 깊어진다. 열린 질문과 꼬리 질문을 포함하고, 마지막 항목에 공통점·차이점·예외를 익명 코드로 분석하는 법을 쓴다."""
+    try:
+        return _compact_json_list("interview", prompt, 7, 1300)
+    except Exception:
+        return make_interview(topic)
+
+
+def report(topic: str, plan_text: str, log: str):
+    plan_input = (plan_text or "")[:5000]
+    log_input = (log or "")[:6000]
+    prompt = f"""주제: {topic}
+계획:
+{plan_input or '[없음]'}
+학생이 실제로 기록한 내용:
+{log_input or '[없음]'}
+
+위 내용만으로 Markdown 보고서 초안을 작성하라. 없는 수치·출처·발언은 만들지 말고 ___[입력 안내]로 둔다.
+목차: 주제 핵심, 동기·목적, 개념·출처, 대상·방법, 결과, 질문-근거-분석 표, 논의·다른 설명, 결론, 한계·후속 탐구, 학교 적용, 제출 확인표.
+제목의 핵심어가 질문·자료·분석·결론에 이어지게 하고 근거가 없으면 [추가 조사 필요]로 표시한다."""
+    try:
+        return _compact_call("report", prompt, 2600)
+    except Exception:
+        return make_report(topic, plan_text, log)
+
+
+def get_runtime_cache_stats() -> dict:
+    return {"entries": len(_RESULT_CACHE), "limit": _RESULT_CACHE_LIMIT}
