@@ -1,0 +1,165 @@
+import tempfile
+from pathlib import Path
+
+import database
+import settings_store
+from fastapi.testclient import TestClient
+from offline_engine import (
+    make_interview,
+    make_plan,
+    make_report,
+    make_research_guide,
+    make_survey,
+    recommend_topics,
+)
+
+
+def assert_offline_generators():
+    interests = [
+        ("AI", ""),
+        ("환경", "플라스틱"),
+        ("스포츠", "수면"),
+        ("수학", "원주율"),
+        ("학교생활", "친구관계"),
+        ("진로", "로봇"),
+    ]
+    checked = 0
+    for tag, detail in interests:
+        items = recommend_topics(tag, detail)
+        assert len(items) >= 10, (tag, detail, len(items))
+        for item in items[:10]:
+            topic = item["topic"]
+            plan = make_plan(topic)
+            guide = make_research_guide(topic)
+            survey = make_survey(topic)
+            interview = make_interview(topic)
+            report = make_report(topic, plan, "실제 조사 메모")
+            assert len(plan) > 500 and topic in plan
+            assert len(guide) >= 7
+            assert len(survey) >= 7
+            assert len(interview) >= 7
+            assert len(report) > 700 and topic in report
+            checked += 1
+    return checked
+
+
+def assert_api_flow():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        data_dir = Path(temp_dir)
+        database.DATA_DIR = data_dir
+        database.DB_PATH = data_dir / "inquiry_mate.db"
+        settings_store.SETTINGS_PATH = data_dir / "settings.json"
+
+        import main
+
+        database.init_db()
+        with TestClient(main.app) as client:
+            assert client.get("/api/class-info").status_code == 200
+            assert client.get("/student.html").status_code == 200
+            assert client.get("/teacher.html").status_code == 200
+            assert client.get("/wizard.html").status_code == 200
+
+            status = client.get("/api/teacher/password-status").json()
+            if not status["has_password"]:
+                response = client.post(
+                    "/api/teacher/password",
+                    json={"password": "teacher1234", "hint": "smoke", "current_password": ""},
+                )
+                assert response.status_code == 200, response.text
+            login = client.post("/api/teacher/login", json={"password": "teacher1234"})
+            assert login.status_code == 200 and login.json()["ok"]
+
+            ai_settings = client.post(
+                "/api/teacher/ai-settings", json={"password": "teacher1234"}
+            )
+            assert ai_settings.status_code == 200, ai_settings.text
+
+            student = client.post(
+                "/api/student/login", json={"name": "점검학생", "student_no": "99999"}
+            )
+            assert student.status_code == 200, student.text
+            student_id = student.json()["id"]
+
+            recommended = client.post(
+                "/api/recommend", json={"tag": "환경", "detail": "플라스틱"}
+            )
+            assert recommended.status_code == 200, recommended.text
+            result = recommended.json()
+            assert result["mode"] == "offline"
+            assert len(result["items"]) >= 10
+            item = result["items"][0]
+
+            created = client.post(
+                "/api/projects",
+                json={
+                    "student_id": student_id,
+                    "tag": "환경",
+                    "interest": "플라스틱",
+                    "topic": item["topic"],
+                    "subject": item.get("subject", ""),
+                    "fit_score": item["fit"]["total"],
+                    "custom_topic": False,
+                },
+            )
+            assert created.status_code == 200, created.text
+            project_id = created.json()["project_id"]
+
+            project = client.get(f"/api/projects/{project_id}")
+            assert project.status_code == 200 and project.json()["plan"]
+            for suffix in ["guide", "survey", "interview"]:
+                response = client.get(f"/api/projects/{project_id}/{suffix}")
+                assert response.status_code == 200, response.text
+                assert len(response.json()["items"]) >= 7
+
+            payload = {
+                "plan": project.json()["plan"],
+                "plan_note": "계획 메모",
+                "guide_note": "자료 메모",
+                "survey_note": "설문 메모",
+                "interview_note": "인터뷰 메모",
+                "research_log": "탐구일지",
+                "progress_note": "통합 점검 진행",
+                "report": "",
+                "report_note": "",
+                "progress": 80,
+            }
+            updated = client.put(f"/api/projects/{project_id}", json=payload)
+            assert updated.status_code == 200, updated.text
+
+            report = client.post(f"/api/projects/{project_id}/report")
+            assert report.status_code == 200, report.text
+            assert len(report.json()["report"]) > 700
+
+            progress = client.put(
+                f"/api/projects/{project_id}/progress-note",
+                json={"progress_note": "진행 상황 저장 점검"},
+            )
+            assert progress.status_code == 200
+
+            feedback = client.post(
+                f"/api/projects/{project_id}/feedback",
+                json={
+                    "teacher_comment": "점검 완료",
+                    "problem_def": 5,
+                    "data_collection": 4,
+                    "analysis": 4,
+                    "communication": 5,
+                },
+            )
+            assert feedback.status_code == 200 and feedback.json()["total_score"] == 18
+
+            dashboard = client.get("/api/teacher/dashboard")
+            assert dashboard.status_code == 200
+            assert any(row["id"] == project_id for row in dashboard.json()["items"])
+
+            projects = client.get(f"/api/student/{student_id}/projects")
+            assert projects.status_code == 200 and projects.json()["items"]
+
+            deleted = client.delete(f"/api/projects/{project_id}")
+            assert deleted.status_code == 200
+
+
+if __name__ == "__main__":
+    count = assert_offline_generators()
+    assert_api_flow()
+    print(f"QR smoke test passed: {count} offline topics and full API flow")
