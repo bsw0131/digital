@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\smoke_test.py", line 221, in <module>
+    assert_ai_recommend_contract()
+  File "D:\a\digital\digital\QR\ucf54\ub4dc\ubc84\uc804\backend\smoke_test.py", line 71, in assert_ai_recommend_contract
+    assert "internal JSON" not in fallback["ai_error"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
