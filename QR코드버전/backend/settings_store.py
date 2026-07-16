@@ -7,7 +7,7 @@ from database import DATA_DIR
 
 SETTINGS_PATH = DATA_DIR / "settings.json"
 DEFAULT_MODEL = "gpt-4.1"
-MODEL_PREFERENCES = ["gpt-5.6-terra", "gpt-5.4-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"]
+MODEL_PREFERENCES = ["gpt-5.6-terra", "gpt-5.6-luna", "gpt-4.1", "gpt-4.1-mini", "chat-latest"]
 
 
 def _read_file() -> dict:
@@ -35,17 +35,27 @@ def _probe_chat_model(client, model: str) -> None:
         "model": model,
         "messages": [{"role": "user", "content": "연결 확인"}],
     }
+    if model.startswith("gpt-5"):
+        params["reasoning_effort"] = "none"
     try:
-        client.chat.completions.create(**params, max_completion_tokens=8)
+        response = client.chat.completions.create(**params, max_completion_tokens=96)
     except BadRequestError as exc:
         message = str(exc).lower()
-        if "max_completion_tokens" not in message and "unsupported parameter" not in message:
+        if "reasoning_effort" in message:
+            params.pop("reasoning_effort", None)
+            response = client.chat.completions.create(**params, max_completion_tokens=96)
+        elif "max_completion_tokens" in message or "unsupported parameter" in message:
+            params.pop("reasoning_effort", None)
+            response = client.chat.completions.create(**params, max_tokens=96)
+        else:
             raise
-        client.chat.completions.create(**params, max_tokens=8)
+    if not (response.choices[0].message.content or "").strip():
+        raise RuntimeError("모델이 텍스트를 반환하지 않았습니다.")
 
 
-def select_working_model(api_key: str, current_model: str = "") -> str:
+def select_working_model(api_key: str, current_model: str = "", excluded_models=None) -> str:
     value = (api_key or "").strip()
+    excluded = set(excluded_models or [])
     if not _looks_like_openai_key(value):
         raise ValueError("OpenAI API 키가 너무 짧거나 형식이 올바르지 않습니다.")
 
@@ -63,7 +73,7 @@ def select_working_model(api_key: str, current_model: str = "") -> str:
 
     candidates = []
     for model in [current_model, *MODEL_PREFERENCES]:
-        if model and model in available and model not in candidates:
+        if model and model in available and model not in candidates and model not in excluded:
             candidates.append(model)
 
     discovered = sorted(
@@ -76,7 +86,7 @@ def select_working_model(api_key: str, current_model: str = "") -> str:
         ),
         reverse=True,
     )
-    candidates.extend(model for model in discovered if model not in candidates)
+    candidates.extend(model for model in discovered if model not in candidates and model not in excluded)
 
     last_error = None
     for model in candidates:
@@ -96,8 +106,8 @@ def validate_openai_api_key(api_key: str, current_model: str = "") -> str:
     return select_working_model(api_key, current_model)
 
 
-def refresh_ai_model(api_key: str, current_model: str = "") -> str:
-    selected = select_working_model(api_key, current_model)
+def refresh_ai_model(api_key: str, current_model: str = "", excluded_models=None) -> str:
+    selected = select_working_model(api_key, current_model, excluded_models)
     settings = _read_file()
     settings["model"] = selected
     _write_file(settings)
