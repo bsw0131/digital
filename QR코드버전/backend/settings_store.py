@@ -1,11 +1,14 @@
 import json
 import os
 import re
+import threading
 from pathlib import Path
 
 from database import DATA_DIR
 
 SETTINGS_PATH = DATA_DIR / "settings.json"
+USAGE_PATH = DATA_DIR / "ai_usage.json"
+_USAGE_LOCK = threading.Lock()
 DEFAULT_MODEL = "gpt-4.1"
 MODEL_PREFERENCES = ["gpt-5.6-terra", "gpt-5.6-luna", "gpt-4.1", "gpt-4.1-mini", "chat-latest"]
 
@@ -221,3 +224,46 @@ def set_ai_mode_enabled(enabled: bool) -> dict:
     current["model"] = locals().get("selected_model", current.get("model") or DEFAULT_MODEL)
     _write_file(current)
     return get_ai_settings_public()
+
+
+def record_ai_usage(operation: str, model: str, usage=None, cache_hit: bool = False) -> None:
+    prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+    completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+    total_tokens = int(getattr(usage, "total_tokens", prompt_tokens + completion_tokens) or 0)
+    with _USAGE_LOCK:
+        try:
+            data = json.loads(USAGE_PATH.read_text(encoding="utf-8")) if USAGE_PATH.exists() else {}
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        totals = data.setdefault("totals", {"api_calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0})
+        stage = data.setdefault("operations", {}).setdefault(operation, {"api_calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0})
+        if cache_hit:
+            totals["cache_hits"] += 1
+            stage["cache_hits"] += 1
+        else:
+            totals["api_calls"] += 1
+            stage["api_calls"] += 1
+            for target in (totals, stage):
+                target["input_tokens"] += prompt_tokens
+                target["output_tokens"] += completion_tokens
+                target["total_tokens"] += total_tokens
+            stage["last_model"] = model
+        DATA_DIR.mkdir(exist_ok=True)
+        USAGE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def get_ai_usage_stats() -> dict:
+    try:
+        data = json.loads(USAGE_PATH.read_text(encoding="utf-8")) if USAGE_PATH.exists() else {}
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    data.setdefault("totals", {"api_calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0})
+    data.setdefault("operations", {})
+    return data
+
+
+def reset_ai_usage_stats() -> dict:
+    with _USAGE_LOCK:
+        DATA_DIR.mkdir(exist_ok=True)
+        USAGE_PATH.write_text(json.dumps({"totals": {"api_calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0}, "operations": {}}, ensure_ascii=False, indent=2), encoding="utf-8")
+    return get_ai_usage_stats()
