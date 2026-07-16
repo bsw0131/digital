@@ -1,0 +1,51 @@
+name: Build QR classroom EXE
+# OpenAI recommendation recovery and custom-topic loading build.
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-qr-exe.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "QR코드버전/backend/requirements.txt"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r "QR코드버전/backend/requirements.txt"
+          python -m pip install pyinstaller
+      - name: Validate QR source and OpenAI SDK
+        shell: pwsh
+        run: |
+          python -m py_compile "QR코드버전/backend/settings_store.py" "QR코드버전/backend/offline_engine.py" "QR코드버전/backend/ai_engine.py" "QR코드버전/backend/main.py"
+          python -c "import openai; print('OpenAI SDK', openai.__version__)"
+          node --check "QR코드버전/frontend/app.js"
+      - name: Build QR executable
+        shell: pwsh
+        run: |
+          python -m PyInstaller "QR코드버전/AI탐구메이트_QR수업모드.spec" --noconfirm --clean --distpath "QR코드버전/dist" --workpath "QR코드버전/build"
+      - name: Verify and commit executable
+        shell: pwsh
+        run: |
+          $exe = Get-Item "QR코드버전/dist/AI탐구메이트_QR수업모드.exe"
+          if ($exe.Length -lt 1MB) { throw "Built executable is unexpectedly small." }
+          Get-FileHash $exe -Algorithm SHA256
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "QR코드버전/dist/AI탐구메이트_QR수업모드.exe"
+          git commit -m "Rebuild QR executable with OpenAI call recovery [skip ci]"
+          git push
