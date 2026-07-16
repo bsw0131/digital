@@ -199,21 +199,21 @@ def recommend(tag: str, detail: str):
 
 반드시 아래 키를 가진 JSON 배열만 출력한다. 설명이나 코드블록은 붙이지 않는다.
 [
-  {
+  {{
     "topic": "구체적인 탐구 질문 또는 제목",
     "subject": "관련 교과 1~2개",
     "difficulty": "중|중상|상",
     "inquiry_type": "주된 탐구 방법",
     "duration": "2주|3주|4주",
     "reason": "수행 방법과 분석 기준까지 포함한 구체적 설명",
-    "fit": {
+    "fit": {{
       "data_collection": 0,
       "survey": 0,
       "experiment": 0,
       "school_application": 0,
       "total": 0
-    }
-  }
+    }}
+  }}
 ]
 """
         res = _chat_completion(config, [{"role": "user", "content": prompt}], 7000)
@@ -229,7 +229,8 @@ def recommend(tag: str, detail: str):
         return {
             "mode": "offline",
             "items": recommend_topics(tag, detail),
-            "ai_error": f"OpenAI 생성 요청 실패 ({type(exc).__name__}: {str(exc)[:180]})",
+            "ai_error": "AI 추천을 생성하지 못해 오프라인 추천으로 전환했습니다.",
+            "ai_error_code": type(exc).__name__,
         }
 
 
