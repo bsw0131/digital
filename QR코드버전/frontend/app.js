@@ -470,24 +470,42 @@ function updateTeacherPasswordStatus(status) {
   document.getElementById('teacherRecoverPanel')?.classList.add('hidden');
 }
 
+function showTeacherModeSelection() {
+  document.getElementById('teacherLogin')?.classList.add('hidden');
+  document.getElementById('dash')?.classList.add('hidden');
+  document.getElementById('teacherModeSelect')?.classList.remove('hidden');
+}
+
 async function initTeacherPage() {
   if (!document.getElementById('teacherLogin')) return;
   const status = await getTeacherPasswordStatus();
   updateTeacherPasswordStatus(status);
-  teacherPassword = '';
-  sessionStorage.removeItem('teacherPassword');
+  document.getElementById('teacherModeSelect')?.classList.add('hidden');
   document.getElementById('dash')?.classList.add('hidden');
-  if (status.has_password) {
-    document.getElementById('teacherModeSelect')?.classList.add('hidden');
-    document.getElementById('teacherLogin')?.classList.remove('hidden');
-    document.getElementById('teacherPw')?.focus();
-    return;
+  document.getElementById('teacherLogin')?.classList.remove('hidden');
+
+  teacherPassword = sessionStorage.getItem('teacherPassword') || '';
+  if (status.has_password && teacherPassword) {
+    const auth = await post('/api/teacher/login', { password: teacherPassword });
+    if (auth.ok) {
+      showTeacherModeSelection();
+      return;
+    }
+    teacherPassword = '';
+    sessionStorage.removeItem('teacherPassword');
   }
-  document.getElementById('teacherModeSelect')?.classList.remove('hidden');
-  document.getElementById('teacherLogin')?.classList.add('hidden');
+
+  if (status.has_password) document.getElementById('teacherPw')?.focus();
+  else document.getElementById('newTeacherPw')?.focus();
 }
 
 function chooseTeacherMode(mode) {
+  if (!teacherPassword) {
+    document.getElementById('teacherModeSelect')?.classList.add('hidden');
+    document.getElementById('teacherLogin')?.classList.remove('hidden');
+    document.getElementById('teacherPw')?.focus();
+    return alert('교사 로그인 후 모드를 선택할 수 있습니다.');
+  }
   if (mode === 'ai') {
     window.location.href = 'ai-settings.html';
     return;
@@ -496,13 +514,11 @@ function chooseTeacherMode(mode) {
 }
 
 async function startOfflineTeacherMode() {
+  if (!teacherPassword) return alert('교사 로그인이 필요합니다.');
   document.getElementById('teacherModeSelect')?.classList.add('hidden');
-  const status = await getTeacherPasswordStatus();
-  updateTeacherPasswordStatus(status);
-  document.getElementById('teacherLogin')?.classList.remove('hidden');
-  document.getElementById('dash')?.classList.add('hidden');
-  if (status.has_password) document.getElementById('teacherPw')?.focus();
-  else document.getElementById('newTeacherPw')?.focus();
+  document.getElementById('teacherLogin')?.classList.add('hidden');
+  document.getElementById('dash')?.classList.remove('hidden');
+  await loadDashboard();
 }
 
 async function showTeacherPasswordPanel() {
@@ -546,14 +562,12 @@ async function setTeacherPassword() {
 
   teacherPassword = password;
   sessionStorage.setItem('teacherPassword', password);
-  document.getElementById('teacherLogin')?.classList.add('hidden');
   document.getElementById('teacherPasswordPanel')?.classList.add('hidden');
-  document.getElementById('dash')?.classList.remove('hidden');
+  showTeacherModeSelection();
   setValue('teacherPw', '');
   setValue('newTeacherPw', '');
   setValue('confirmTeacherPw', '');
-  alert('교사 비밀번호가 저장되었습니다.');
-  await loadDashboard();
+  alert('교사 비밀번호가 저장되었습니다. 사용할 수업 모드를 선택하세요.');
 }
 
 async function recoverTeacherPassword() {
@@ -582,9 +596,7 @@ async function teacherLogin() {
   if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
   teacherPassword = password;
   sessionStorage.setItem('teacherPassword', password);
-  document.getElementById('teacherLogin').classList.add('hidden');
-  document.getElementById('dash').classList.remove('hidden');
-  await loadDashboard();
+  showTeacherModeSelection();
 }
 
 async function aiSettingsLogin() {
