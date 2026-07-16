@@ -282,27 +282,56 @@ async function startCustomTopic() {
   if (!(await refreshStudentAiMode())) return alert('직접 주제 입력은 AI 모드에서만 사용할 수 있습니다. 교사에게 AI 모드 활성화를 요청해 주세요.');
   const topic = valueOf('customTopic').trim();
   if (topic.length < 8) return alert('대상, 핵심 개념 또는 비교 기준이 드러나도록 탐구주제를 조금 더 구체적으로 입력해 주세요.');
-  const { detail, tagText } = getInterestQuery();
-  const interest = detail || topic;
-  const response = await fetch('/api/projects', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      student_id: currentStudent.id,
-      tag: tagText || '직접 주제',
-      interest,
-      topic,
-      subject: '자율탐구',
-      fit_score: 80,
-      custom_topic: true,
-    }),
-  });
-  const res = await response.json();
-  if (!response.ok) {
-    await refreshStudentAiMode();
-    return alert(res.detail || 'AI 모드에서만 직접 주제로 시작할 수 있습니다.');
+
+  const loading = document.getElementById('customTopicLoading');
+  const elapsed = document.getElementById('customTopicElapsed');
+  const button = document.getElementById('customTopicBtn');
+  const input = document.getElementById('customTopic');
+  const startedAt = Date.now();
+  if (loading) loading.classList.remove('hidden');
+  if (elapsed) elapsed.innerText = '0';
+  if (button) {
+    button.disabled = true;
+    button.innerText = 'AI 주제 분석 중...';
   }
-  window.location.href = `wizard.html?project_id=${res.project_id}`;
+  if (input) input.disabled = true;
+  const timer = setInterval(() => {
+    if (elapsed) elapsed.innerText = String(Math.floor((Date.now() - startedAt) / 1000));
+  }, 1000);
+
+  try {
+    const { detail, tagText } = getInterestQuery();
+    const interest = detail || topic;
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: currentStudent.id,
+        tag: tagText || '직접 주제',
+        interest,
+        topic,
+        subject: '자율탐구',
+        fit_score: 80,
+        custom_topic: true,
+      }),
+    });
+    const res = await response.json();
+    if (!response.ok) {
+      await refreshStudentAiMode();
+      return alert(res.detail || 'AI 탐구계획 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+    window.location.href = `wizard.html?project_id=${res.project_id}`;
+  } catch (error) {
+    alert('AI 주제 분석 중 연결 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+  } finally {
+    clearInterval(timer);
+    if (loading) loading.classList.add('hidden');
+    if (button) {
+      button.disabled = false;
+      button.innerText = '직접 입력한 주제로 시작';
+    }
+    if (input) input.disabled = false;
+  }
 }
 
 async function initWizardPage() {
