@@ -1,0 +1,64 @@
+name: Audit and build QR classroom EXE
+# Token optimization regression build.
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-qr-exe.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  audit-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "QR코드버전/backend/requirements.txt"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r "QR코드버전/backend/requirements.txt"
+          python -m pip install pyinstaller httpx
+      - name: Validate QR source
+        shell: pwsh
+        run: |
+          python -m py_compile "QR코드버전/backend/database.py" "QR코드버전/backend/settings_store.py" "QR코드버전/backend/offline_engine.py" "QR코드버전/backend/ai_engine.py" "QR코드버전/backend/main.py" "QR코드버전/backend/smoke_test.py"
+          node --check "QR코드버전/frontend/app.js"
+      - name: Verify token optimization invariants
+        shell: pwsh
+        run: |
+          Push-Location "QR코드버전/backend"
+          python -c "import ai_engine; assert len(ai_engine._COMPACT_SYSTEM) < 220; assert ai_engine.get_runtime_cache_stats()['limit'] >= 100; print('compact system chars', len(ai_engine._COMPACT_SYSTEM))"
+          Pop-Location
+          $main = Get-Content -Raw "QR코드버전/backend/main.py"
+          if (-not $main.Contains("make_offline_plan(req.topic) if req.custom_topic")) { throw "Custom topic still uses OpenAI plan." }
+      - name: Run full QR regression audit
+        shell: pwsh
+        run: |
+          Push-Location "QR코드버전/backend"
+          python smoke_test.py
+          Pop-Location
+      - name: Build QR executable
+        shell: pwsh
+        run: |
+          python -m PyInstaller "QR코드버전/AI탐구메이트_QR수업모드.spec" --noconfirm --clean --distpath "QR코드버전/dist" --workpath "QR코드버전/build"
+      - name: Verify and commit executable
+        shell: pwsh
+        run: |
+          $exe = Get-Item "QR코드버전/dist/AI탐구메이트_QR수업모드.exe"
+          if ($exe.Length -lt 1MB) { throw "Built executable is unexpectedly small." }
+          Get-FileHash $exe -Algorithm SHA256
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "QR코드버전/dist/AI탐구메이트_QR수업모드.exe"
+          git commit -m "Rebuild QR executable with token optimization [skip ci]"
+          git push
