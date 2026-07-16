@@ -43,7 +43,18 @@ def _online_client(config: dict):
 
 
 def _clean_json_text(text: str) -> str:
-    return (text or "").strip().replace("＇＇＇json", "").replace("＇＇＇", "").replace("```json", "").replace("```", "").strip()
+    cleaned = (text or "").strip().replace("＇＇＇json", "").replace("＇＇＇", "").replace("```json", "").replace("```", "").strip()
+    if cleaned.startswith("[") and "]" in cleaned:
+        return cleaned[:cleaned.rfind("]") + 1]
+    if cleaned.startswith("{") and "}" in cleaned:
+        return cleaned[:cleaned.rfind("}") + 1]
+    array_start, array_end = cleaned.find("["), cleaned.rfind("]")
+    if array_start >= 0 and array_end > array_start:
+        return cleaned[array_start:array_end + 1]
+    object_start, object_end = cleaned.find("{"), cleaned.rfind("}")
+    if object_start >= 0 and object_end > object_start:
+        return cleaned[object_start:object_end + 1]
+    return cleaned
 
 
 def _chat_completion(config: dict, messages: list[dict], max_tokens: int):
@@ -53,18 +64,29 @@ def _chat_completion(config: dict, messages: list[dict], max_tokens: int):
 
     def create(model: str):
         params = {"model": model, "messages": messages}
+        if model.startswith("gpt-5"):
+            params["reasoning_effort"] = "none"
         try:
-            return client.chat.completions.create(**params, max_completion_tokens=max_tokens)
+            response = client.chat.completions.create(**params, max_completion_tokens=max_tokens)
         except BadRequestError as exc:
             message = str(exc).lower()
-            if "max_completion_tokens" not in message and "unsupported parameter" not in message:
+            if "reasoning_effort" in message:
+                params.pop("reasoning_effort", None)
+                response = client.chat.completions.create(**params, max_completion_tokens=max_tokens)
+            elif "max_completion_tokens" in message or "unsupported parameter" in message:
+                params.pop("reasoning_effort", None)
+                response = client.chat.completions.create(**params, max_tokens=max_tokens)
+            else:
                 raise
-            return client.chat.completions.create(**params, max_tokens=max_tokens)
+        if not (response.choices[0].message.content or "").strip():
+            raise RuntimeError(f"{model} 모델이 빈 응답을 반환했습니다.")
+        return response
 
+    failed_model = config["model"]
     try:
-        return create(config["model"])
-    except OpenAIError:
-        new_model = refresh_ai_model(config["api_key"], config.get("model", ""))
+        return create(failed_model)
+    except (OpenAIError, RuntimeError):
+        new_model = refresh_ai_model(config["api_key"], failed_model, excluded_models={failed_model})
         config["model"] = new_model
         return create(new_model)
 
@@ -194,9 +216,12 @@ def recommend(tag: str, detail: str):
   }
 ]
 """
-        res = _chat_completion(config, [{"role": "user", "content": prompt}], 4200)
+        res = _chat_completion(config, [{"role": "user", "content": prompt}], 7000)
         text = _clean_json_text(res.choices[0].message.content)
-        items = _normalize_recommendation_scores(json.loads(text))
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            parsed = parsed.get("items") or parsed.get("topics") or []
+        items = _normalize_recommendation_scores(parsed)
         if len(items) < 10:
             raise ValueError("AI response has too few recommendations")
         return {"mode": "online", "items": items[:15]}
@@ -204,7 +229,7 @@ def recommend(tag: str, detail: str):
         return {
             "mode": "offline",
             "items": recommend_topics(tag, detail),
-            "ai_error": f"OpenAI 생성 요청 실패 ({type(exc).__name__})",
+            "ai_error": f"OpenAI 생성 요청 실패 ({type(exc).__name__}: {str(exc)[:180]})",
         }
 
 
