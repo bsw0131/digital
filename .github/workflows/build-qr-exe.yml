@@ -1,5 +1,5 @@
 name: Audit and build QR classroom EXE
-# AI wizard loading-state build.
+# AI wizard loading-state build. Trigger.
 
 on:
   push:
