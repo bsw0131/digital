@@ -255,7 +255,7 @@ function renderRecommendations() {
       <div class="score">${fit.total || 70}점</div>
       <div class="bar"><span style="width:${clamp(fit.total || 70)}%"></span></div>
       <div class="fit-grid"><span>자료 ${fit.data_collection || '-'}</span><span>설문 ${fit.survey || '-'}</span><span>실험 ${fit.experiment || '-'}</span><span>학교 ${fit.school_application || '-'}</span></div>
-      <button class="btn" onclick='startProject(${JSON.stringify(it).replace(/'/g, "&#39;")})'>이 주제로 시작</button>
+      <button class="btn start-project-btn" onclick='startProject(${JSON.stringify(it).replace(/'/g, "&#39;")})'>이 주제로 시작</button>
     </div>`;
   }).join('');
   const nav = document.getElementById('recommendNav');
@@ -271,10 +271,47 @@ function showRecommendationPage(direction) {
 }
 
 async function startProject(item) {
-  const fit = item.fit || {};
-  const { detail, tagText } = getInterestQuery();
-  const res = await post('/api/projects', { student_id: currentStudent.id, tag: tagText, interest: detail, topic: item.topic, subject: item.subject || '', fit_score: fit.total || 70 });
-  window.location.href = `wizard.html?project_id=${res.project_id}`;
+  if (!currentStudent) return alert('먼저 학번과 이름을 입력해 주세요.');
+  const buttons = [...document.querySelectorAll('.start-project-btn')];
+  buttons.forEach(button => {
+    button.disabled = true;
+    button.dataset.originalText = button.innerText;
+    button.innerText = '탐구계획 준비 중...';
+  });
+  try {
+    const fit = item.fit || {};
+    const { detail, tagText } = getInterestQuery();
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: currentStudent.id,
+        tag: tagText,
+        interest: detail,
+        topic: item.topic,
+        subject: item.subject || '',
+        fit_score: fit.total || 70,
+        custom_topic: false,
+      }),
+    });
+    let res = {};
+    try {
+      res = await response.json();
+    } catch (error) {
+      res = {};
+    }
+    if (!response.ok || !res.project_id) {
+      return alert(res.detail || '탐구계획을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+    window.location.href = `wizard.html?project_id=${res.project_id}`;
+  } catch (error) {
+    alert('다음 단계로 이동하지 못했습니다. 서버 연결을 확인한 뒤 다시 시도해 주세요.');
+  } finally {
+    buttons.forEach(button => {
+      button.disabled = false;
+      button.innerText = button.dataset.originalText || '이 주제로 시작';
+    });
+  }
 }
 
 async function startCustomTopic() {
