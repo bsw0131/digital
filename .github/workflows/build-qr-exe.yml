@@ -1,5 +1,5 @@
 name: Audit and build QR classroom EXE
-# Clean recommendation warning build. Trigger.
+# Clean recommendation warning build. Diagnostic trigger.
 
 on:
   push:
@@ -44,8 +44,17 @@ jobs:
         shell: pwsh
         run: |
           Push-Location "QR코드버전/backend"
-          python smoke_test.py
+          python smoke_test.py *>&1 | Tee-Object "../../qr-warning-audit.log"
+          $auditCode = $LASTEXITCODE
           Pop-Location
+          if ($auditCode -ne 0) {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "qr-warning-audit.log"
+            git commit -m "Capture QR warning audit failure [skip ci]"
+            git push
+            exit $auditCode
+          }
       - name: Build QR executable
         shell: pwsh
         run: |
