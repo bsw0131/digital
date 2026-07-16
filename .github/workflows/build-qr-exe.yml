@@ -1,5 +1,5 @@
 name: Build QR classroom EXE
-# OpenAI recommendation recovery and custom-topic loading build.
+# OpenAI recommendation recovery and custom-topic loading build. Trigger.
 
 on:
   push:
