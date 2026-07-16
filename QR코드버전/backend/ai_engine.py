@@ -508,7 +508,8 @@ reason은 수집할 근거와 분석 기준을 1~2문장으로 쓴다. fit은 da
         return {"mode": "online", "items": items[:15]}
     except Exception as exc:
         return {"mode": "offline", "items": recommend_topics(tag, detail),
-                "ai_error": f"OpenAI 생성 요청 실패 ({type(exc).__name__}: {str(exc)[:180]})"}
+                "ai_error": "AI 추천을 생성하지 못해 오프라인 추천으로 전환했습니다.",
+                "ai_error_code": type(exc).__name__}
 
 
 def plan(topic: str):
