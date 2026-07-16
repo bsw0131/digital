@@ -1518,12 +1518,12 @@ def _alignment_blueprint(topic: str) -> dict:
         analysis = "입장별 근거를 기준표에 정리하고, 충돌하는 가치와 예외 상황을 함께 설명한다."
         caution = "찬반 인원수만으로 옳고 그름을 결정하지 말고 근거의 신뢰성과 영향을 함께 판단한다."
     else:
-        method = f"{p['sources']}에서 배경을 확인하고, {p['target']}을 대상으로 관찰·설문·인터뷰 중 주제에 맞는 방법을 선택한다."
+        method = f"{p['source']}에서 배경을 확인하고, {p['target']}을 대상으로 관찰·설문·인터뷰 중 주제에 맞는 방법을 선택한다."
         evidence = f"{terms}의 실제 사례, 빈도·조건·이유, 서로 다른 관점"
         analysis = p["analysis"]
         caution = "의견과 사실을 구분하고, 일부 응답을 전체 학생의 특징처럼 일반화하지 않는다."
     return {"terms": terms, "question": shape["question"], "method": method, "evidence": evidence,
-            "analysis": analysis, "caution": caution, "sources": p["sources"],
+            "analysis": analysis, "caution": caution, "sources": p["source"],
             "target": p["target"], "product": p["product"], "conceptual": conceptual}
 
 
