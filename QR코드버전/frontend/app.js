@@ -7,6 +7,7 @@ let recommendedItems = [];
 let recommendationPage = 0;
 let lastDashboard = [];
 let teacherPassword = '';
+let teacherSessionToken = '';
 let studentAiModeActive = false;
 
 const TAGS = ['AI','스마트폰','유튜브','SNS','게임','웹툰','K-POP','영화','음악','스포츠','건강','수면','스트레스','음식','환경','기후변화','플라스틱','동물','생명윤리','과학','로봇','데이터','수학','학습법','독서','진로','친구관계','학교생활','소비습관','지역사회','코딩','드론','우주','천문','의학','뇌과학','심리','반려동물','요리','제과제빵','사진','디자인','애니메이션','드라마','댄스','악기','e스포츠','자동차','건축','경제','창업','금융','역사','문화유산','언어','영어','글쓰기','토론','봉사활동','안전'];
@@ -61,6 +62,17 @@ function validateInterestSelection(detailItems) {
 async function post(url, data) {
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   return res.json();
+}
+
+function rememberTeacherSession(auth) {
+  teacherSessionToken = auth?.session_token || '';
+  if (teacherSessionToken) sessionStorage.setItem('teacherSessionToken', teacherSessionToken);
+  else sessionStorage.removeItem('teacherSessionToken');
+}
+
+function clearTeacherSession() {
+  teacherSessionToken = '';
+  sessionStorage.removeItem('teacherSessionToken');
 }
 
 function esc(value) {
@@ -649,13 +661,16 @@ async function initTeacherPage() {
   document.getElementById('teacherLogin')?.classList.remove('hidden');
 
   teacherPassword = sessionStorage.getItem('teacherPassword') || '';
+  teacherSessionToken = sessionStorage.getItem('teacherSessionToken') || '';
   if (status.has_password && teacherPassword) {
     const auth = await post('/api/teacher/login', { password: teacherPassword });
     if (auth.ok) {
+      rememberTeacherSession(auth);
       showTeacherModeSelection();
       return;
     }
     teacherPassword = '';
+    clearTeacherSession();
     sessionStorage.removeItem('teacherPassword');
   }
 
@@ -726,6 +741,9 @@ async function setTeacherPassword() {
 
   teacherPassword = password;
   sessionStorage.setItem('teacherPassword', password);
+  const auth = await post('/api/teacher/login', { password });
+  if (!auth.ok) return alert('교사 세션을 시작하지 못했습니다. 다시 로그인하세요.');
+  rememberTeacherSession(auth);
   document.getElementById('teacherPasswordPanel')?.classList.add('hidden');
   showTeacherModeSelection();
   setValue('teacherPw', '');
@@ -760,6 +778,7 @@ async function teacherLogin() {
   if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
   teacherPassword = password;
   sessionStorage.setItem('teacherPassword', password);
+  rememberTeacherSession(res);
   showTeacherModeSelection();
 }
 
@@ -769,6 +788,7 @@ async function aiSettingsLogin() {
   if (!res.ok) return alert('비밀번호가 올바르지 않습니다.');
   teacherPassword = password;
   sessionStorage.setItem('teacherPassword', password);
+  rememberTeacherSession(res);
   document.getElementById('aiSettingsLogin')?.classList.add('hidden');
   document.getElementById('aiSettingsBox')?.classList.remove('hidden');
   await loadAiSettings();
@@ -785,6 +805,7 @@ async function initAiSettingsPage() {
   } else {
     const auth = await post('/api/teacher/login', { password: teacherPassword });
     if (!auth.ok) return;
+    rememberTeacherSession(auth);
   }
   document.getElementById('aiSettingsLogin')?.classList.add('hidden');
   document.getElementById('aiSettingsBox')?.classList.remove('hidden');
@@ -897,7 +918,14 @@ function renderDashboardFeedbackHistory(feedbacks = []) {
 }
 
 async function loadDashboard() {
-  const res = await (await fetch('/api/teacher/dashboard')).json();
+  if (!teacherSessionToken) return alert('교사 로그인이 필요합니다.');
+  const res = await post('/api/teacher/dashboard', { session_token: teacherSessionToken });
+  if (res.detail) {
+    clearTeacherSession();
+    alert('교사 세션이 만료되었습니다. 다시 로그인하세요.');
+    location.reload();
+    return;
+  }
   lastDashboard = res.items || [];
   document.getElementById('dashboard').innerHTML = `<table class="table"><tr><th>학생</th><th>주제</th><th>진행 상황</th><th>적합도</th><th>진행률</th><th class="no-print">교사 피드백</th></tr>${lastDashboard.map(x => `<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.student_no)}</span></td><td>${esc(x.topic)}</td><td><strong>${esc(x.progress_note || '아직 입력된 진행 상황이 없습니다.')}</strong><p class="muted">최근 저장: ${esc(x.updated_at || '-')}</p>${renderUpdateHistory(x.updates || [])}</td><td>${x.fit_score}점</td><td>${x.progress}%<div class="bar"><span style="width:${clamp(x.progress)}%"></span></div></td><td class="no-print"><label class="field-label" for="c${x.id}">교사 피드백</label><textarea class="teacher-comment" id="c${x.id}" placeholder="학생에게 보여줄 피드백을 적어주세요."></textarea><button class="btn secondary" onclick="saveFeedback(${x.id})">피드백 저장</button>${renderDashboardFeedbackHistory(x.feedbacks || [])}</td></tr>`).join('')}</table>`;
 }
@@ -917,7 +945,7 @@ async function resetStudentData() {
 }
 
 async function saveFeedback(id) {
-  const payload = { teacher_comment: valueOf(`c${id}`).trim() };
+  const payload = { session_token: teacherSessionToken, teacher_comment: valueOf(`c${id}`).trim() };
   if (!payload.teacher_comment) return alert('교사 피드백을 입력하세요.');
   await post(`/api/projects/${id}/feedback`, payload);
   alert('교사 피드백이 저장되었습니다.');

@@ -5,6 +5,7 @@ import database
 import settings_store
 from fastapi.testclient import TestClient
 from offline_engine import (
+    _topic_terms,
     make_interview,
     make_plan,
     make_report,
@@ -42,6 +43,9 @@ def assert_offline_generators():
             survey = make_survey(topic)
             interview = make_interview(topic)
             report = make_report(topic, plan, "실제 조사 메모")
+            terms = _topic_terms(topic)
+            assert terms and all(len(term) >= 2 for term in terms), (topic, terms)
+            assert not ({"과", "영", "학", "이", "어"} & set(terms)), (topic, terms)
             assert len(plan) > 500 and topic in plan
             assert len(guide) >= 7
             assert len(survey) >= 7
@@ -71,7 +75,12 @@ def assert_ai_recommend_contract():
     ai_engine.get_online_config = lambda: {"enabled": True, "api_key": "sk-test-key-long-enough-value", "model": "test-model"}
     ai_engine._compact_call = lambda *args, **kwargs: __import__("json").dumps(fake_items, ensure_ascii=False)
     result = ai_engine.recommend("게임", "")
-    assert result["mode"] == "online" and len(result["items"]) == 15
+    assert result["mode"] == "online" and len(result["items"]) == 10
+
+    compact_rows = [[f"압축 주제 {i}", "사회", "중", "자료조사", "3주", "근거 비교"] for i in range(10)]
+    converted = ai_engine._recommendation_rows(compact_rows)
+    assert len(converted) == 10 and converted[0]["topic"] == "압축 주제 0"
+    assert max(ai_engine.AI_TOKEN_BUDGETS.values()) <= 900
 
     ai_engine._compact_call = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("internal JSON { detail }"))
     fallback = ai_engine.recommend("게임", "")
@@ -106,6 +115,9 @@ def assert_api_flow():
                 assert response.status_code == 200, response.text
             login = client.post("/api/teacher/login", json={"password": "teacher1234"})
             assert login.status_code == 200 and login.json()["ok"]
+            teacher_session = login.json()["session_token"]
+            assert teacher_session
+            assert client.post("/api/teacher/dashboard", json={"session_token": ""}).status_code == 403
 
             ai_settings = client.post(
                 "/api/teacher/ai-settings", json={"password": "teacher1234"}
@@ -201,9 +213,16 @@ def assert_api_flow():
             )
             assert progress.status_code == 200
 
+            unauthorized_feedback = client.post(
+                f"/api/projects/{project_id}/feedback",
+                json={"teacher_comment": "인증 없는 피드백"},
+            )
+            assert unauthorized_feedback.status_code == 403
+
             feedback = client.post(
                 f"/api/projects/{project_id}/feedback",
                 json={
+                    "session_token": teacher_session,
                     "teacher_comment": "점검 완료",
                     "problem_def": 5,
                     "data_collection": 4,
@@ -213,7 +232,9 @@ def assert_api_flow():
             )
             assert feedback.status_code == 200 and feedback.json()["total_score"] == 18
 
-            dashboard = client.get("/api/teacher/dashboard")
+            dashboard = client.post(
+                "/api/teacher/dashboard", json={"session_token": teacher_session}
+            )
             assert dashboard.status_code == 200
             assert any(row["id"] == project_id for row in dashboard.json()["items"])
 

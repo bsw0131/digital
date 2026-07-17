@@ -1,3 +1,6 @@
+import re
+
+
 INTEREST_PROFILES = {
     "AI": ("인공지능 활용", "추천, 예측, 판단 보조, 윤리"),
     "스마트폰": ("스마트폰 사용", "생활 습관, 집중력, 디지털 안전"),
@@ -1056,19 +1059,43 @@ def recommend_topics(tag: str, detail: str) -> list[dict]:
 
 
 def _topic_terms(topic: str) -> list[str]:
-    terms = []
+    terms: list[str] = []
     known_terms = list(INTEREST_PROFILES.keys())
     for keywords, _ in CUSTOM_INTEREST_KEYWORDS:
         known_terms.extend(keywords)
-    for keyword in sorted(set(known_terms), key=len, reverse=True):
-        if keyword and keyword in topic and keyword not in terms:
+    # 주제에 실제로 등장하는 등록 관심사를 먼저 선택한다. 긴 복합어를 우선한다.
+    for keyword in sorted(set(known_terms), key=lambda value: (-len(value), topic.find(value))):
+        if len(keyword) >= 2 and keyword in topic and keyword not in terms:
             terms.append(keyword)
         if len(terms) >= 4:
             return terms
-    for chunk in topic.replace("·", ",").replace("와", ",").replace("과", ",").replace("을", ",").replace("를", ",").replace("에", ",").split(","):
-        cleaned = "".join(ch for ch in chunk.strip() if ch.isalnum() or ch in " -")
-        if 2 <= len(cleaned) <= 12 and cleaned not in terms:
-            terms.append(cleaned)
+
+    stopwords = {
+        "학생", "학생들", "우리", "학교", "관련", "대한", "통한", "사용한", "직접",
+        "어떤", "무엇", "왜", "어떻게", "있을까", "무엇일까", "알아보기", "탐구",
+        "관심", "생각", "이유", "기준", "결과", "영향", "효과", "차이", "관계",
+        "작성한", "미치는", "미치",
+    }
+    particles = ("으로부터", "에서는", "에게서", "까지는", "이라는", "에서는", "으로", "에서",
+                 "에게", "보다", "처럼", "만큼", "이나", "이며", "하고", "에는", "와", "과",
+                 "을", "를", "은", "는", "이", "가", "의", "에", "도", "만")
+    endings = ("하는", "되는", "미치는", "사용한", "작성한", "나타난", "달라지는", "생각하는")
+    tokens = re.findall(r"[가-힣]{2,}|[A-Za-z][A-Za-z0-9+.#-]+|\d+(?:\.\d+)?", topic)
+    for raw in tokens:
+        cleaned = raw
+        for ending in endings:
+            if cleaned.endswith(ending) and len(cleaned) > len(ending) + 1:
+                cleaned = cleaned[:-len(ending)]
+                break
+        for particle in particles:
+            if cleaned.endswith(particle) and len(cleaned) > len(particle) + 1:
+                cleaned = cleaned[:-len(particle)]
+                break
+        if len(cleaned) < 2 or cleaned in stopwords or cleaned in terms:
+            continue
+        terms.append(cleaned)
+        if len(terms) >= 4:
+            break
     return terms[:4]
 
 

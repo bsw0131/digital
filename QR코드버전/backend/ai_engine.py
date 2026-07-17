@@ -442,9 +442,17 @@ def report(topic: str, plan_text: str, log: str):
         pass
     return make_report(topic, plan_text, log)
 # === 저토큰 AI 실행 계층 (QR 전용) ===
-_COMPACT_SYSTEM = """대한민국 중·고등학생 탐구 코치다. 입력 주제의 핵심어·범위·근거·적합한 방법을 끝까지 유지한다. 학교에서 2~4주 안에 실행 가능하게 쓰고, 사실과 의견·상관과 인과를 구분한다. 개인정보·위험 활동을 피한다. 학생이 주지 않은 수치·결과·출처는 만들지 않는다. 설명은 짧고 구체적인 한국어로 쓴다."""
+_COMPACT_SYSTEM = """중·고등학생 탐구 코치다. 주제의 핵심어·범위·근거를 유지하고 2~4주 내 실행 가능하게 쓴다. 사실/의견과 상관/인과를 구분하며 없는 수치·출처는 만들지 않는다. 짧고 구체적인 한국어로 답한다."""
 _RESULT_CACHE = {}
 _RESULT_CACHE_LIMIT = 128
+AI_TOKEN_BUDGETS = {
+    "recommend": 900,
+    "plan": 550,
+    "guide": 450,
+    "survey": 450,
+    "interview": 450,
+    "report": 850,
+}
 
 
 def _cache_key(operation: str, config: dict, prompt: str) -> str:
@@ -488,24 +496,46 @@ def _compact_json_list(operation: str, prompt: str, count: int, max_tokens: int 
     return items[:count]
 
 
+def _recommendation_rows(data) -> list[dict]:
+    """압축 배열 응답을 기존 화면용 객체로 바꾼다."""
+    if isinstance(data, dict):
+        data = data.get("items") or data.get("topics") or []
+    rows = []
+    for item in data if isinstance(data, list) else []:
+        if isinstance(item, dict):
+            rows.append(item)
+        elif isinstance(item, list) and len(item) >= 6:
+            rows.append({
+                "topic": item[0], "subject": item[1], "difficulty": item[2],
+                "inquiry_type": item[3], "duration": item[4], "reason": item[5],
+            })
+    return rows
+
+
+def _compact_context(value: str, limit: int) -> str:
+    text = "\n".join(line.strip() for line in (value or "").splitlines() if line.strip())
+    if len(text) <= limit:
+        return text
+    head = int(limit * 0.65)
+    tail = limit - head
+    return text[:head].rstrip() + "\n[…중간 내용 생략…]\n" + text[-tail:].lstrip()
+
+
 def recommend(tag: str, detail: str):
     config = get_online_config()
     if not (config["enabled"] and config["api_key"]):
         return {"mode": "offline", "items": recommend_topics(tag, detail)}
-    prompt = f"""관심사: {tag or '없음'} / 직접 입력: {detail or '없음'}
-서로 겹치지 않는 탐구주제 15개를 JSON 배열로만 출력하라.
-제목에는 대상·핵심 개념·비교/판단 기준이 드러나야 한다. 원리형은 설문으로 사실을 증명하지 말고 문헌·사례·모형을 쓴다. 자료분석, 설문/인터뷰, 관찰/비교, 안전한 실험, 개선안 유형을 섞는다.
-각 객체 키: topic, subject, difficulty(중|중상|상), inquiry_type, duration(2주|3주|4주), reason, fit.
-reason은 수집할 근거와 분석 기준을 1~2문장으로 쓴다. fit은 data_collection,survey,experiment,school_application,total을 0~100 정수로 넣는다."""
+    prompt = f"""관심사={tag or '없음'}; 세부={detail or '없음'}
+서로 다른 실행 가능한 탐구주제 10개를 JSON 배열로만 출력한다.
+각 항목 형식: [제목,교과,난이도,방법,기간,이유]. 난이도=중/중상/상, 기간=2주/3주/4주.
+제목에 대상·핵심개념·비교/판단기준을 넣고 자료분석·설문/인터뷰·관찰/비교·안전한 실험·개선안을 섞는다. 이유는 필요한 근거와 분석기준을 한 문장으로 쓴다. 원리형은 설문으로 증명하지 않는다."""
     try:
-        text = _compact_call("recommend", prompt, 4300)
-        parsed = json.loads(_clean_json_text(text))
-        if isinstance(parsed, dict):
-            parsed = parsed.get("items") or parsed.get("topics") or []
+        text = _compact_call("recommend", prompt, AI_TOKEN_BUDGETS["recommend"])
+        parsed = _recommendation_rows(json.loads(_clean_json_text(text)))
         items = _normalize_recommendation_scores(parsed)
         if len(items) < 10:
             raise ValueError("AI response has too few recommendations")
-        return {"mode": "online", "items": items[:15]}
+        return {"mode": "online", "items": items[:10]}
     except Exception as exc:
         return {"mode": "offline", "items": recommend_topics(tag, detail),
                 "ai_error": "AI 추천을 생성하지 못해 오프라인 추천으로 전환했습니다.",
@@ -525,7 +555,7 @@ def plan(topic: str):
 8 최종 산출물.
 주제보다 넓은 일반론으로 바꾸지 말고 전문 용어는 짧게 풀이한다."""
     try:
-        return _compact_call("plan", prompt, 1800)
+        return _compact_call("plan", prompt, AI_TOKEN_BUDGETS["plan"])
     except Exception:
         return make_plan(topic)
 
@@ -535,7 +565,7 @@ def guide(topic: str):
 자료조사 가이드 7개를 JSON 문자열 배열로만 출력하라. 각 항목은 '단계 — 행동 — 산출물' 형식이다.
 순서: 범위·핵심어 정의, 검색어 4개, 공신력 있는 출처 3종, 신뢰도 확인, 세부 질문별 근거 추출, 표/그래프 분석, 결론·한계 점검. 각 문장에 이 주제의 구체적 핵심어를 사용하고 출처 기록 양식(기관, 제목, 날짜, URL)을 포함한다."""
     try:
-        return _compact_json_list("guide", prompt, 7, 1300)
+        return _compact_json_list("guide", prompt, 7, AI_TOKEN_BUDGETS["guide"])
     except Exception:
         return make_research_guide(topic)
 
@@ -545,7 +575,7 @@ def survey(topic: str):
 설문 안내와 문항 7개를 JSON 문자열 배열로만 출력하라. 각 문항에 응답 형식·선택지·측정 기준을 함께 쓴다.
 구성: 익명 안내, 대상 조건, 행동/경험 2개, 원인/영향 2개, 서술형 1개. 한 문항에 한 내용만 묻는다. 원리·개념 주제라면 사실의 진위를 묻지 말고 이해도·오개념을 측정한다. 민감 개인정보는 묻지 않는다."""
     try:
-        return _compact_json_list("survey", prompt, 7, 1300)
+        return _compact_json_list("survey", prompt, 7, AI_TOKEN_BUDGETS["survey"])
     except Exception:
         return make_survey(topic)
 
@@ -555,14 +585,14 @@ def interview(topic: str):
 인터뷰 안내와 질문 7개를 JSON 문자열 배열로만 출력하라.
 대상·동의 안내 후 구체적 경험→핵심 과정/원인→판단 근거→자료와 다른 점→예외→개선 제안 순으로 깊어진다. 열린 질문과 꼬리 질문을 포함하고, 마지막 항목에 공통점·차이점·예외를 익명 코드로 분석하는 법을 쓴다."""
     try:
-        return _compact_json_list("interview", prompt, 7, 1300)
+        return _compact_json_list("interview", prompt, 7, AI_TOKEN_BUDGETS["interview"])
     except Exception:
         return make_interview(topic)
 
 
 def report(topic: str, plan_text: str, log: str):
-    plan_input = (plan_text or "")[:5000]
-    log_input = (log or "")[:6000]
+    plan_input = _compact_context(plan_text, 1200)
+    log_input = _compact_context(log, 2000)
     prompt = f"""주제: {topic}
 계획:
 {plan_input or '[없음]'}
@@ -573,7 +603,7 @@ def report(topic: str, plan_text: str, log: str):
 목차: 주제 핵심, 동기·목적, 개념·출처, 대상·방법, 결과, 질문-근거-분석 표, 논의·다른 설명, 결론, 한계·후속 탐구, 학교 적용, 제출 확인표.
 제목의 핵심어가 질문·자료·분석·결론에 이어지게 하고 근거가 없으면 [추가 조사 필요]로 표시한다."""
     try:
-        return _compact_call("report", prompt, 2600)
+        return _compact_call("report", prompt, AI_TOKEN_BUDGETS["report"])
     except Exception:
         return make_report(topic, plan_text, log)
 

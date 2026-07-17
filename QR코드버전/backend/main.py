@@ -1,5 +1,6 @@
 import io
 import os
+import secrets
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -31,6 +32,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
 FRONTEND_DIR = RESOURCE_DIR / "frontend"
 KST = timezone(timedelta(hours=9))
+TEACHER_SESSION_HOURS = 4
+teacher_sessions: dict[str, datetime] = {}
 
 app = FastAPI(title="AI 탐구메이트")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -88,6 +91,10 @@ class TeacherAuthReq(BaseModel):
     password: str = ""
 
 
+class TeacherSessionReq(BaseModel):
+    session_token: str = ""
+
+
 class TeacherPasswordSetReq(BaseModel):
     password: str = ""
     hint: str = ""
@@ -99,6 +106,7 @@ class TeacherPasswordRecoverReq(BaseModel):
 
 
 class FeedbackReq(BaseModel):
+    session_token: str = ""
     teacher_comment: str = ""
     problem_def: int = 0
     data_collection: int = 0
@@ -109,6 +117,24 @@ class FeedbackReq(BaseModel):
 def require_teacher(password: str):
     if not verify_teacher_password(password):
         raise HTTPException(403, "invalid teacher password")
+
+
+def create_teacher_session() -> str:
+    now = datetime.now(timezone.utc)
+    expired = [token for token, expires_at in teacher_sessions.items() if expires_at <= now]
+    for token in expired:
+        teacher_sessions.pop(token, None)
+    token = secrets.token_urlsafe(32)
+    teacher_sessions[token] = now + timedelta(hours=TEACHER_SESSION_HOURS)
+    return token
+
+
+def require_teacher_session(session_token: str):
+    token = (session_token or "").strip()
+    expires_at = teacher_sessions.get(token)
+    if not expires_at or expires_at <= datetime.now(timezone.utc):
+        teacher_sessions.pop(token, None)
+        raise HTTPException(403, "invalid or expired teacher session")
 
 
 def now_label() -> str:
@@ -462,7 +488,13 @@ def generate_report(project_id: int):
 
 @app.post("/api/teacher/login")
 def teacher_login(payload: dict):
-    return {"ok": verify_teacher_password(payload.get("password", "")), **get_teacher_auth_public()}
+    ok = verify_teacher_password(payload.get("password", ""))
+    return {
+        "ok": ok,
+        "session_token": create_teacher_session() if ok else "",
+        "expires_in_hours": TEACHER_SESSION_HOURS if ok else 0,
+        **get_teacher_auth_public(),
+    }
 
 
 @app.get("/api/teacher/password-status")
@@ -478,6 +510,7 @@ def set_teacher_password(req: TeacherPasswordSetReq):
         raise HTTPException(400, "password is required")
     except PermissionError:
         raise HTTPException(403, "invalid teacher password")
+    teacher_sessions.clear()
     return {"ok": True, **status}
 
 
@@ -519,8 +552,9 @@ def teacher_ai_usage_reset(req: TeacherAuthReq):
     return {"ok": True, **reset_ai_usage_stats()}
 
 
-@app.get("/api/teacher/dashboard")
-def dashboard():
+@app.post("/api/teacher/dashboard")
+def dashboard(req: TeacherSessionReq):
+    require_teacher_session(req.session_token)
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
@@ -567,6 +601,7 @@ def reset_student_data(payload: dict):
 
 @app.post("/api/projects/{project_id}/feedback")
 def save_feedback(project_id: int, req: FeedbackReq):
+    require_teacher_session(req.session_token)
     conn = get_conn()
     cur = conn.cursor()
     timestamp = now_label()
