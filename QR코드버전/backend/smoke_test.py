@@ -44,7 +44,7 @@ def assert_offline_generators():
             interview = make_interview(topic)
             report = make_report(topic, plan, "실제 조사 메모")
             terms = _topic_terms(topic)
-            assert terms and all(len(term) >= 2 for term in terms), (topic, terms)
+            assert len(terms) == 2 and all(len(term) >= 2 for term in terms), (topic, terms)
             assert not ({"과", "영", "학", "이", "어"} & set(terms)), (topic, terms)
             assert len(plan) > 500 and topic in plan
             assert len(guide) >= 7
@@ -80,7 +80,7 @@ def assert_ai_recommend_contract():
     compact_rows = [[f"압축 주제 {i}", "사회", "중", "자료조사", "3주", "근거 비교"] for i in range(10)]
     converted = ai_engine._recommendation_rows(compact_rows)
     assert len(converted) == 10 and converted[0]["topic"] == "압축 주제 0"
-    assert max(ai_engine.AI_TOKEN_BUDGETS.values()) <= 900
+    assert max(ai_engine.AI_TOKEN_BUDGETS.values()) <= 450
 
     ai_engine._compact_call = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("internal JSON { detail }"))
     fallback = ai_engine.recommend("게임", "")

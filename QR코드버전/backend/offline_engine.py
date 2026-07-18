@@ -1065,10 +1065,25 @@ def _topic_terms(topic: str) -> list[str]:
         known_terms.extend(keywords)
     # 주제에 실제로 등장하는 등록 관심사를 먼저 선택한다. 긴 복합어를 우선한다.
     for keyword in sorted(set(known_terms), key=lambda value: (-len(value), topic.find(value))):
-        if len(keyword) >= 2 and keyword in topic and keyword not in terms:
+        overlaps = any(keyword in term or term in keyword for term in terms)
+        if len(keyword) >= 2 and keyword in topic and keyword not in terms and not overlaps:
             terms.append(keyword)
-        if len(terms) >= 4:
+        if len(terms) >= 2:
             return terms
+
+    viewpoints = [
+        (["비교", "차이", "전후"], "비교 기준"),
+        (["영향", "효과", "미치는"], "영향 요인"),
+        (["관계", "상관"], "관계 분석"),
+        (["개선", "해결", "제안"], "개선 방안"),
+        (["인식", "선호", "관심", "만족"], "인식 조사"),
+        (["원리", "구조", "작동"], "작동 원리"),
+    ]
+    if len(terms) == 1:
+        for markers, label in viewpoints:
+            if any(marker in topic for marker in markers):
+                terms.append(label)
+                return terms
 
     stopwords = {
         "학생", "학생들", "우리", "학교", "관련", "대한", "통한", "사용한", "직접",
@@ -1091,12 +1106,23 @@ def _topic_terms(topic: str) -> list[str]:
             if cleaned.endswith(particle) and len(cleaned) > len(particle) + 1:
                 cleaned = cleaned[:-len(particle)]
                 break
-        if len(cleaned) < 2 or cleaned in stopwords or cleaned in terms:
+        overlaps = any(cleaned in term or term in cleaned for term in terms)
+        if len(cleaned) < 2 or cleaned in stopwords or cleaned in terms or overlaps:
             continue
         terms.append(cleaned)
-        if len(terms) >= 4:
+        if len(terms) >= 2:
             break
-    return terms[:4]
+    if len(terms) < 2:
+        for markers, label in viewpoints:
+            if any(marker in topic for marker in markers) and label not in terms:
+                terms.append(label)
+                break
+    for fallback in ("핵심 개념", "분석 기준"):
+        if len(terms) >= 2:
+            break
+        if fallback not in terms:
+            terms.append(fallback)
+    return terms[:2]
 
 
 GUIDE_PROFILES = [
