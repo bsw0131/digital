@@ -80,7 +80,8 @@ def assert_ai_recommend_contract():
     compact_rows = [[f"압축 주제 {i}", "사회", "중", "자료조사", "3주", "근거 비교"] for i in range(10)]
     converted = ai_engine._recommendation_rows(compact_rows)
     assert len(converted) == 10 and converted[0]["topic"] == "압축 주제 0"
-    assert max(ai_engine.AI_TOKEN_BUDGETS.values()) <= 450
+    assert ai_engine.AI_TOKEN_BUDGETS["recommend"] >= 1000
+    assert all(ai_engine.AI_TOKEN_BUDGETS[name] >= 900 for name in ("guide", "survey", "interview"))
 
     ai_engine._compact_call = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("internal JSON { detail }"))
     fallback = ai_engine.recommend("게임", "")
