@@ -35,7 +35,8 @@ def has_api_key() -> bool:
 def _cached_online_client(api_key: str):
     from openai import OpenAI
 
-    return OpenAI(api_key=api_key, timeout=35.0, max_retries=1)
+    # 재시도 정책은 아래 호출 계층에서 오류 유형별로 제어한다.
+    return OpenAI(api_key=api_key, timeout=60.0, max_retries=0)
 
 
 def _online_client(config: dict):
@@ -57,15 +58,25 @@ def _clean_json_text(text: str) -> str:
     return cleaned
 
 
-def _chat_completion(config: dict, messages: list[dict], max_tokens: int):
-    from openai import BadRequestError, OpenAIError
+def _is_model_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return any(token in message for token in (
+        "model_not_found", "model does not exist", "does not exist or you do not have access",
+        "not have access to model", "unsupported model",
+    ))
 
+
+def _chat_completion(config: dict, messages: list[dict], max_tokens: int, json_mode: bool = False):
+    import time
+    from openai import APIConnectionError, APITimeoutError, BadRequestError, InternalServerError, NotFoundError, OpenAIError, PermissionDeniedError, RateLimitError
     client = _online_client(config)
 
     def create(model: str):
         params = {"model": model, "messages": messages}
         if model.startswith("gpt-5"):
             params["reasoning_effort"] = "none"
+        if json_mode:
+            params["response_format"] = {"type": "json_object"}
         try:
             response = client.chat.completions.create(**params, max_completion_tokens=max_tokens)
         except BadRequestError as exc:
@@ -76,19 +87,43 @@ def _chat_completion(config: dict, messages: list[dict], max_tokens: int):
             elif "max_completion_tokens" in message or "unsupported parameter" in message:
                 params.pop("reasoning_effort", None)
                 response = client.chat.completions.create(**params, max_tokens=max_tokens)
+            elif json_mode and ("response_format" in message or "json_object" in message):
+                params.pop("response_format", None)
+                response = client.chat.completions.create(**params, max_completion_tokens=max_tokens)
             else:
                 raise
         if not (response.choices[0].message.content or "").strip():
             raise RuntimeError(f"{model} 모델이 빈 응답을 반환했습니다.")
         return response
 
-    failed_model = config["model"]
-    try:
-        return create(failed_model)
-    except (OpenAIError, RuntimeError):
-        new_model = refresh_ai_model(config["api_key"], failed_model, excluded_models={failed_model})
-        config["model"] = new_model
-        return create(new_model)
+    model = config["model"]
+    transient_errors = (APIConnectionError, APITimeoutError, RateLimitError, InternalServerError)
+    last_error = None
+    for attempt in range(3):
+        try:
+            return create(model)
+        except transient_errors as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(0.8 * (2 ** attempt))
+                continue
+        except (NotFoundError, PermissionDeniedError) as exc:
+            last_error = exc
+            break
+        except BadRequestError as exc:
+            if not _is_model_error(exc):
+                raise
+            last_error = exc
+            break
+        except RuntimeError:
+            raise
+        except OpenAIError:
+            raise
+    if isinstance(last_error, transient_errors):
+        raise last_error
+    new_model = refresh_ai_model(config["api_key"], model, excluded_models={model})
+    config["model"] = new_model
+    return create(new_model)
 
 
 def _online_text(system: str, prompt: str, temperature: float = 0.45, max_tokens: int = 3000) -> str:
@@ -446,12 +481,12 @@ _COMPACT_SYSTEM = """중·고등학생 탐구 코치다. 주제의 핵심어·�
 _RESULT_CACHE = {}
 _RESULT_CACHE_LIMIT = 128
 AI_TOKEN_BUDGETS = {
-    "recommend": 450,
-    "plan": 275,
-    "guide": 225,
-    "survey": 225,
-    "interview": 225,
-    "report": 425,
+    "recommend": 1200,
+    "plan": 900,
+    "guide": 900,
+    "survey": 900,
+    "interview": 900,
+    "report": 1600,
 }
 
 
@@ -462,19 +497,15 @@ def _cache_key(operation: str, config: dict, prompt: str) -> str:
     return f"{operation}:{config['model']}:{key_hash}:{prompt_hash}"
 
 
-def _compact_call(operation: str, prompt: str, max_tokens: int) -> str:
+def _compact_call(operation: str, prompt: str, max_tokens: int, *, json_mode: bool = False, bypass_cache: bool = False) -> str:
     config = get_online_config()
     if not (config["enabled"] and config["api_key"]):
         raise RuntimeError("online ai disabled")
     key = _cache_key(operation, config, prompt)
-    if key in _RESULT_CACHE:
+    if not bypass_cache and key in _RESULT_CACHE:
         record_ai_usage(operation, config["model"], cache_hit=True)
         return _RESULT_CACHE[key]
-    response = _chat_completion(
-        config,
-        [{"role": "system", "content": _COMPACT_SYSTEM}, {"role": "user", "content": prompt}],
-        max_tokens,
-    )
+    response = _chat_completion(config, [{"role": "system", "content": _COMPACT_SYSTEM}, {"role": "user", "content": prompt}], max_tokens, json_mode=json_mode)
     text = (response.choices[0].message.content or "").strip()
     record_ai_usage(operation, config["model"], response.usage)
     if len(_RESULT_CACHE) >= _RESULT_CACHE_LIMIT:
@@ -483,9 +514,22 @@ def _compact_call(operation: str, prompt: str, max_tokens: int) -> str:
     return text
 
 
+def _compact_json_data(operation: str, prompt: str, max_tokens: int):
+    last_error = None
+    for attempt in range(2):
+        retry_prompt = prompt
+        if attempt:
+            retry_prompt += "\n이전 응답이 잘렸거나 JSON 형식이 아니었다. 설명 없이 완전한 JSON 객체 하나만 다시 출력한다."
+        try:
+            text = _compact_call(operation, retry_prompt, max_tokens, json_mode=True, bypass_cache=bool(attempt))
+            return json.loads(_clean_json_text(text))
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            last_error = exc
+    raise last_error or ValueError("AI JSON response could not be parsed")
+
+
 def _compact_json_list(operation: str, prompt: str, count: int, max_tokens: int = 1500) -> list[str]:
-    text = _compact_call(operation, prompt, max_tokens)
-    data = json.loads(_clean_json_text(text))
+    data = _compact_json_data(operation, prompt, max_tokens)
     if isinstance(data, dict):
         data = data.get("items", [])
     if not isinstance(data, list):
@@ -526,12 +570,13 @@ def recommend(tag: str, detail: str):
     if not (config["enabled"] and config["api_key"]):
         return {"mode": "offline", "items": recommend_topics(tag, detail)}
     prompt = f"""관심사={tag or '없음'}; 세부={detail or '없음'}
-서로 다른 실행 가능한 탐구주제 5개를 JSON 배열로만 출력한다.
-각 항목 형식: [제목,교과,난이도,방법,기간,이유]. 난이도=중/중상/상, 기간=2주/3주/4주.
+서로 다른 실행 가능한 탐구주제 5개를 JSON 객체로만 출력한다.
+형식: {{"items":[[제목,교과,난이도,방법,기간,이유], ...]}}. 난이도=중/중상/상, 기간=2주/3주/4주.
 제목에 대상·핵심개념·비교/판단기준을 넣고 자료분석·설문/인터뷰·관찰/비교·안전한 실험·개선안을 섞는다. 이유는 필요한 근거와 분석기준을 한 문장으로 쓴다. 원리형은 설문으로 증명하지 않는다."""
     try:
-        text = _compact_call("recommend", prompt, AI_TOKEN_BUDGETS["recommend"])
-        parsed = _recommendation_rows(json.loads(_clean_json_text(text)))
+        parsed = _recommendation_rows(
+            _compact_json_data("recommend", prompt, AI_TOKEN_BUDGETS["recommend"])
+        )
         items = _normalize_recommendation_scores(parsed)
         if len(items) < 5:
             raise ValueError("AI response has too few recommendations")
