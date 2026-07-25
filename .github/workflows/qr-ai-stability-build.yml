@@ -6,6 +6,8 @@ on:
     paths:
       - 'QR코드버전/backend/ai_engine.py'
       - 'QR코드버전/backend/smoke_test.py'
+      - 'QR코드버전/frontend/app.js'
+      - 'QR코드버전/frontend/teacher.html'
       - '.github/workflows/qr-ai-stability-build.yml'
 
 permissions:
