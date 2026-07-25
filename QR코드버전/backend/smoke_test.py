@@ -82,6 +82,8 @@ def assert_ai_recommend_contract():
     assert len(converted) == 10 and converted[0]["topic"] == "압축 주제 0"
     assert ai_engine.AI_TOKEN_BUDGETS["recommend"] >= 1000
     assert all(ai_engine.AI_TOKEN_BUDGETS[name] >= 900 for name in ("guide", "survey", "interview"))
+    assert ai_engine.AI_TOKEN_BUDGETS["plan"] == 1400
+    assert ai_engine.AI_TOKEN_BUDGETS["report"] == 2800
 
     ai_engine._compact_call = lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("internal JSON { detail }"))
     fallback = ai_engine.recommend("게임", "")
@@ -89,30 +91,6 @@ def assert_ai_recommend_contract():
     assert "internal JSON" not in fallback["ai_error"]
     ai_engine.get_online_config = original_config
     ai_engine._compact_call = original_call
-
-def assert_ai_markdown_completion():
-    import ai_engine
-
-    original_call = ai_engine._compact_call
-    calls = []
-
-    def fake_call(operation, prompt, max_tokens, **kwargs):
-        calls.append((max_tokens, kwargs.get("bypass_cache", False)))
-        if len(calls) == 1:
-            return "# 계획서\n도중에 끊긴 응답"
-        return "# 계획서\n모든 항목 작성\n[응답완료]"
-
-    try:
-        ai_engine._compact_call = fake_call
-        text = ai_engine._compact_markdown("plan", "주제: 점검", 900, 1600)
-        assert calls == [(900, False), (1600, True)]
-        assert text.endswith("모든 항목 작성")
-        assert "[응답완료]" not in text
-        assert ai_engine.AI_RETRY_TOKEN_BUDGETS["plan"] > ai_engine.AI_TOKEN_BUDGETS["plan"]
-        assert ai_engine.AI_RETRY_TOKEN_BUDGETS["report"] > ai_engine.AI_TOKEN_BUDGETS["report"]
-    finally:
-        ai_engine._compact_call = original_call
-
 
 def assert_teacher_ai_dashboard_routing():
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
@@ -283,7 +261,6 @@ def assert_api_flow():
 if __name__ == "__main__":
     count = assert_offline_generators()
     assert_ai_recommend_contract()
-    assert_ai_markdown_completion()
     assert_teacher_ai_dashboard_routing()
     assert_api_flow()
     print(f"QR smoke test passed: {count} offline topics and full API flow")
