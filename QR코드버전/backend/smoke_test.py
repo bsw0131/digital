@@ -90,6 +90,16 @@ def assert_ai_recommend_contract():
     ai_engine.get_online_config = original_config
     ai_engine._compact_call = original_call
 
+def assert_teacher_ai_dashboard_routing():
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    app_text = (frontend_dir / "app.js").read_text(encoding="utf-8")
+    teacher_text = (frontend_dir / "teacher.html").read_text(encoding="utf-8")
+    assert "async function chooseTeacherMode(mode)" in app_text
+    assert "if (settings.has_api_key)" in app_text
+    assert "await startOfflineTeacherMode()" in app_text
+    assert "API 키가 저장되어 있으면 학생 탐구 현황" in teacher_text
+
+
 def assert_api_flow():
     with tempfile.TemporaryDirectory() as temp_dir:
         data_dir = Path(temp_dir)
@@ -249,5 +259,6 @@ def assert_api_flow():
 if __name__ == "__main__":
     count = assert_offline_generators()
     assert_ai_recommend_contract()
+    assert_teacher_ai_dashboard_routing()
     assert_api_flow()
     print(f"QR smoke test passed: {count} offline topics and full API flow")
