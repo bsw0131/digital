@@ -488,6 +488,8 @@ AI_TOKEN_BUDGETS = {
     "interview": 900,
     "report": 1600,
 }
+AI_RETRY_TOKEN_BUDGETS = {"plan": 1600, "report": 3000}
+_COMPLETION_MARKER = "[응답완료]"
 
 
 def _cache_key(operation: str, config: dict, prompt: str) -> str:
@@ -512,6 +514,29 @@ def _compact_call(operation: str, prompt: str, max_tokens: int, *, json_mode: bo
         _RESULT_CACHE.pop(next(iter(_RESULT_CACHE)))
     _RESULT_CACHE[key] = text
     return text
+
+
+def _compact_markdown(operation: str, prompt: str, max_tokens: int, retry_tokens: int) -> str:
+    completion_prompt = prompt + f"\n모든 항목을 끝까지 작성한 뒤 마지막 줄에 반드시 {_COMPLETION_MARKER}만 쓴다."
+    attempts = [
+        (completion_prompt, max_tokens, False),
+        (
+            completion_prompt
+            + "\n이전 응답이 도중에 끊겼다. 내용을 생략하지 말고 처음부터 완전하게 다시 작성한다.",
+            retry_tokens,
+            True,
+        ),
+    ]
+    for attempt_prompt, token_budget, bypass_cache in attempts:
+        text = _compact_call(
+            operation,
+            attempt_prompt,
+            token_budget,
+            bypass_cache=bypass_cache,
+        )
+        if _COMPLETION_MARKER in text:
+            return text.rsplit(_COMPLETION_MARKER, 1)[0].rstrip()
+    raise ValueError(f"{operation} AI response was incomplete")
 
 
 def _compact_json_data(operation: str, prompt: str, max_tokens: int):
@@ -599,7 +624,9 @@ def plan(topic: str):
     prompt = f"""주제: {topic}
 짧은 Markdown 계획서: 핵심어2·범위·방법, 동기, 질문1+세부3, 대상/기간, 근거-수집-분석, 3주 일정, 윤리/한계, 산출물. 주제를 일반화하지 않는다."""
     try:
-        return _compact_call("plan", prompt, AI_TOKEN_BUDGETS["plan"])
+        return _compact_markdown(
+            "plan", prompt, AI_TOKEN_BUDGETS["plan"], AI_RETRY_TOKEN_BUDGETS["plan"]
+        )
     except Exception:
         return make_plan(topic)
 
@@ -644,7 +671,9 @@ def report(topic: str, plan_text: str, log: str):
 목차: 주제 핵심, 동기·목적, 개념·출처, 대상·방법, 결과, 질문-근거-분석 표, 논의·다른 설명, 결론, 한계·후속 탐구, 학교 적용, 제출 확인표.
 제목의 핵심어가 질문·자료·분석·결론에 이어지게 하고 근거가 없으면 [추가 조사 필요]로 표시한다."""
     try:
-        return _compact_call("report", prompt, AI_TOKEN_BUDGETS["report"])
+        return _compact_markdown(
+            "report", prompt, AI_TOKEN_BUDGETS["report"], AI_RETRY_TOKEN_BUDGETS["report"]
+        )
     except Exception:
         return make_report(topic, plan_text, log)
 
