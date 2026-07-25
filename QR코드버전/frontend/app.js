@@ -678,7 +678,7 @@ async function initTeacherPage() {
   else document.getElementById('newTeacherPw')?.focus();
 }
 
-function chooseTeacherMode(mode) {
+async function chooseTeacherMode(mode) {
   if (!teacherPassword) {
     document.getElementById('teacherModeSelect')?.classList.add('hidden');
     document.getElementById('teacherLogin')?.classList.remove('hidden');
@@ -686,6 +686,11 @@ function chooseTeacherMode(mode) {
     return alert('교사 로그인 후 모드를 선택할 수 있습니다.');
   }
   if (mode === 'ai') {
+    const settings = await post('/api/teacher/ai-settings', { password: teacherPassword });
+    if (settings.has_api_key) {
+      await startOfflineTeacherMode();
+      return;
+    }
     window.location.href = 'ai-settings.html';
     return;
   }
