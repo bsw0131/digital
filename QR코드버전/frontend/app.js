@@ -939,6 +939,24 @@ function saveDashboardPdf() {
   window.print();
 }
 
+async function resetTeacherPassword() {
+  if (!teacherSessionToken) return alert('교사 로그인 후 사용할 수 있습니다.');
+  const ok = confirm(
+    '교사 비밀번호와 힌트만 초기화합니다.\n\n학생 탐구 자료와 AI 설정은 그대로 유지되며, 다음 교사 대시보드 접속 시 새 비밀번호를 설정하게 됩니다. 계속할까요?'
+  );
+  if (!ok) return;
+  const res = await post('/api/teacher/password/reset', { session_token: teacherSessionToken });
+  if (!res.ok) {
+    clearTeacherSession();
+    return alert('로그인 정보가 만료되었습니다. 다시 로그인하세요.');
+  }
+  teacherPassword = '';
+  sessionStorage.removeItem('teacherPassword');
+  clearTeacherSession();
+  alert('교사 비밀번호가 초기화되었습니다. 학생 자료와 AI 설정은 유지됩니다.');
+  window.location.reload();
+}
+
 async function resetStudentData() {
   if (!teacherPassword) return alert('교사 로그인 후 사용할 수 있습니다.');
   const ok = confirm('모든 학생, 탐구, 피드백 자료를 삭제합니다. 계속할까요?');
