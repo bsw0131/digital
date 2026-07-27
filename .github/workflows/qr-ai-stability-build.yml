@@ -5,8 +5,11 @@ on:
   push:
     paths:
       - 'QR코드버전/backend/ai_engine.py'
+      - 'QR코드버전/backend/main.py'
+      - 'QR코드버전/backend/settings_store.py'
       - 'QR코드버전/backend/smoke_test.py'
       - 'QR코드버전/frontend/app.js'
+      - 'QR코드버전/frontend/class.html'
       - 'QR코드버전/frontend/teacher.html'
       - '.github/workflows/qr-ai-stability-build.yml'
 
@@ -28,7 +31,7 @@ jobs:
           pip install httpx
       - name: Validate QR sources
         run: |
-          python -m py_compile "QR코드버전/backend/ai_engine.py" "QR코드버전/backend/settings_store.py" "QR코드버전/backend/smoke_test.py"
+          python -m py_compile "QR코드버전/backend/ai_engine.py" "QR코드버전/backend/main.py" "QR코드버전/backend/settings_store.py" "QR코드버전/backend/smoke_test.py"
           cd "QR코드버전/backend"
           python smoke_test.py
 
