@@ -24,6 +24,7 @@
     .mode-switch input:checked + .switch-track::after { transform: translateX(22px); }
     .mode-switch input:disabled + .switch-track { opacity: .55; }
     .mode-help { margin: 0; max-width: 270px; color: #6a7688; font-size: 13px; line-height: 1.45; text-align: right; }
+    .full-reset-btn { padding: 9px 14px; font-size: 13px; }
     .class-grid { display: grid; grid-template-columns: 420px 1fr; gap: 18px; align-items: stretch; }
     .class-panel { background: #fff; border: 1px solid #d9e3f2; border-radius: 8px; box-shadow: 0 18px 48px rgba(34, 61, 94, .12); padding: 24px; }
     .qr-box { display: grid; place-items: center; min-height: 372px; border: 1px dashed #b7c7df; border-radius: 8px; background: #f8fbff; }
@@ -68,6 +69,7 @@
           <span>AI</span>
         </label>
         <p class="mode-help" id="modeHelp">스위치를 켜면 저장된 API 키로 AI 모드를 사용합니다.</p>
+        <button class="btn danger full-reset-btn" type="button" onclick="resetProgramToInitialState()">처음 상태로 전체 초기화</button>
       </div>
     </section>
 
@@ -150,6 +152,30 @@
         toggle.disabled = false;
         help.textContent = err.message;
         if (enabled) alert(err.message + '\n교사 대시보드의 AI 설정에서 API 키를 저장해 주세요.');
+      }
+    }
+
+    async function resetProgramToInitialState() {
+      const agreed = confirm(
+        '저장된 모든 학생·탐구·피드백 자료와 교사 비밀번호, API 키, AI 설정 및 사용량을 삭제합니다.\n\n이 작업은 되돌릴 수 없습니다. 처음 상태로 초기화할까요?'
+      );
+      if (!agreed) return;
+      const typed = prompt('실행하려면 아래 입력창에 초기화라고 입력하세요.');
+      if (typed !== '초기화') {
+        if (typed !== null) alert('입력 내용이 일치하지 않아 초기화하지 않았습니다.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/program/reset', { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.detail || '전체 초기화에 실패했습니다.');
+        localStorage.clear();
+        sessionStorage.clear();
+        alert('모든 저장 내용이 삭제되었습니다. 프로그램이 처음 상태로 돌아갑니다.');
+        window.location.reload();
+      } catch (error) {
+        alert(error.message || '전체 초기화에 실패했습니다. 프로그램을 다시 실행한 뒤 시도하세요.');
       }
     }
 
