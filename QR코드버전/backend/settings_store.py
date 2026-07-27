@@ -270,6 +270,29 @@ def get_ai_usage_stats() -> dict:
     return data
 
 
+def reset_all_saved_settings() -> None:
+    with _USAGE_LOCK:
+        _write_file({})
+        DATA_DIR.mkdir(exist_ok=True)
+        USAGE_PATH.write_text(
+            json.dumps(
+                {
+                    "totals": {
+                        "api_calls": 0,
+                        "cache_hits": 0,
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "total_tokens": 0,
+                    },
+                    "operations": {},
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+
 def reset_ai_usage_stats() -> dict:
     with _USAGE_LOCK:
         DATA_DIR.mkdir(exist_ok=True)
