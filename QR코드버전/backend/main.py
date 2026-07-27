@@ -22,6 +22,7 @@ from settings_store import (
     get_teacher_auth_public,
     recover_teacher_password,
     reset_ai_usage_stats,
+    reset_all_saved_settings,
     reset_teacher_password,
     save_ai_settings,
     set_ai_mode_enabled,
@@ -198,6 +199,30 @@ def set_class_mode(req: ClassModeReq, request: Request):
         "ai_mode_active": bool(settings["online_ai_enabled"] and settings["has_api_key"]),
         "has_api_key": settings["has_api_key"],
     }
+
+
+@app.post("/api/program/reset")
+def reset_program(request: Request):
+    client_host = request.client.host if request.client else ""
+    if client_host not in {"127.0.0.1", "::1"}:
+        raise HTTPException(403, "전체 초기화는 교사 PC의 첫 화면에서만 가능합니다.")
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM feedback")
+    cur.execute("DELETE FROM project_updates")
+    cur.execute("DELETE FROM projects")
+    cur.execute("DELETE FROM students")
+    cur.execute(
+        "DELETE FROM sqlite_sequence WHERE name IN ('feedback', 'project_updates', 'projects', 'students')"
+    )
+    conn.commit()
+    conn.close()
+
+    reset_all_saved_settings()
+    teacher_sessions.clear()
+    ai_engine.clear_runtime_cache()
+    return {"ok": True, "message": "프로그램이 처음 상태로 초기화되었습니다."}
 
 
 @app.get("/api/qr.svg")
