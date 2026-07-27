@@ -22,6 +22,7 @@ from settings_store import (
     get_teacher_auth_public,
     recover_teacher_password,
     reset_ai_usage_stats,
+    reset_teacher_password,
     save_ai_settings,
     set_ai_mode_enabled,
     save_teacher_password,
@@ -510,6 +511,14 @@ def set_teacher_password(req: TeacherPasswordSetReq):
         raise HTTPException(400, "password is required")
     except PermissionError:
         raise HTTPException(403, "invalid teacher password")
+    teacher_sessions.clear()
+    return {"ok": True, **status}
+
+
+@app.post("/api/teacher/password/reset")
+def clear_teacher_password(req: TeacherSessionReq):
+    require_teacher_session(req.session_token)
+    status = reset_teacher_password()
     teacher_sessions.clear()
     return {"ok": True, **status}
 
