@@ -649,5 +649,10 @@ def report(topic: str, plan_text: str, log: str):
         return make_report(topic, plan_text, log)
 
 
+def clear_runtime_cache() -> None:
+    _RESULT_CACHE.clear()
+    _cached_online_client.cache_clear()
+
+
 def get_runtime_cache_stats() -> dict:
     return {"entries": len(_RESULT_CACHE), "limit": _RESULT_CACHE_LIMIT}
