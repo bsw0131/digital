@@ -100,6 +100,9 @@ def assert_teacher_ai_dashboard_routing():
     assert "if (settings.has_api_key)" in app_text
     assert "await startOfflineTeacherMode()" in app_text
     assert "API 키가 저장되어 있으면 학생 탐구 현황" in teacher_text
+    assert "async function resetTeacherPassword()" in app_text
+    assert "/api/teacher/password/reset" in app_text
+    assert "비밀번호 초기화" in teacher_text
 
 
 def assert_api_flow():
@@ -253,6 +256,37 @@ def assert_api_flow():
 
             projects = client.get(f"/api/student/{student_id}/projects")
             assert projects.status_code == 200 and projects.json()["items"]
+
+            unauthorized_reset = client.post(
+                "/api/teacher/password/reset", json={"session_token": ""}
+            )
+            assert unauthorized_reset.status_code == 403
+
+            password_reset = client.post(
+                "/api/teacher/password/reset", json={"session_token": teacher_session}
+            )
+            assert password_reset.status_code == 200, password_reset.text
+            assert password_reset.json()["has_password"] is False
+            assert client.get("/api/teacher/password-status").json()["has_password"] is False
+            assert client.post(
+                "/api/teacher/dashboard", json={"session_token": teacher_session}
+            ).status_code == 403
+            assert client.get(f"/api/projects/{project_id}").status_code == 200
+            assert client.post(
+                "/api/teacher/login", json={"password": "teacher1234"}
+            ).json()["ok"] is True
+
+            new_password = client.post(
+                "/api/teacher/password",
+                json={"password": "teacher5678", "hint": "reset-ok", "current_password": ""},
+            )
+            assert new_password.status_code == 200, new_password.text
+            assert client.post(
+                "/api/teacher/login", json={"password": "teacher1234"}
+            ).json()["ok"] is False
+            assert client.post(
+                "/api/teacher/login", json={"password": "teacher5678"}
+            ).json()["ok"] is True
 
             deleted = client.delete(f"/api/projects/{project_id}")
             assert deleted.status_code == 200
