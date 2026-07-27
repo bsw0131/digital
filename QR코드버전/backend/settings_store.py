@@ -167,6 +167,14 @@ def save_teacher_password(password: str, hint: str = "", current_password: str =
     return get_teacher_auth_public()
 
 
+def reset_teacher_password() -> dict:
+    saved = _read_file()
+    saved.pop("teacher_password", None)
+    saved.pop("teacher_password_hint", None)
+    _write_file(saved)
+    return get_teacher_auth_public()
+
+
 def recover_teacher_password(hint: str = "") -> str:
     saved = _read_file()
     expected_hint = (saved.get("teacher_password_hint") or "").strip()
