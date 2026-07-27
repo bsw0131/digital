@@ -96,6 +96,7 @@ def assert_teacher_ai_dashboard_routing():
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
     app_text = (frontend_dir / "app.js").read_text(encoding="utf-8")
     teacher_text = (frontend_dir / "teacher.html").read_text(encoding="utf-8")
+    class_text = (frontend_dir / "class.html").read_text(encoding="utf-8")
     assert "async function chooseTeacherMode(mode)" in app_text
     assert "if (settings.has_api_key)" in app_text
     assert "await startOfflineTeacherMode()" in app_text
@@ -103,6 +104,10 @@ def assert_teacher_ai_dashboard_routing():
     assert "async function resetTeacherPassword()" in app_text
     assert "/api/teacher/password/reset" in app_text
     assert "비밀번호 초기화" in teacher_text
+    assert "처음 상태로 전체 초기화" in class_text
+    assert "async function resetProgramToInitialState()" in class_text
+    assert "/api/program/reset" in class_text
+    assert "typed !== '초기화'" in class_text
 
 
 def assert_api_flow():
@@ -288,8 +293,29 @@ def assert_api_flow():
                 "/api/teacher/login", json={"password": "teacher5678"}
             ).json()["ok"] is True
 
-            deleted = client.delete(f"/api/projects/{project_id}")
-            assert deleted.status_code == 200
+            settings_store._write_file(
+                {
+                    "teacher_password": "teacher5678",
+                    "teacher_password_hint": "reset-ok",
+                    "openai_api_key": "sk-" + ("x" * 32),
+                    "online_ai_enabled": False,
+                    "model": "test-model",
+                }
+            )
+            settings_store.record_ai_usage("plan", "test-model")
+            main.ai_engine._RESULT_CACHE["reset-test"] = "cached"
+            reset_result = main.reset_program(
+                main.Request({"type": "http", "client": ("127.0.0.1", 50000)})
+            )
+            assert reset_result["ok"] is True
+            assert client.get("/api/teacher/password-status").json()["has_password"] is False
+            reset_info = client.get("/api/class-info").json()
+            assert reset_info["has_api_key"] is False
+            assert reset_info["ai_mode_active"] is False
+            assert settings_store.get_ai_usage_stats()["totals"]["api_calls"] == 0
+            assert main.ai_engine.get_runtime_cache_stats()["entries"] == 0
+            assert client.get(f"/api/projects/{project_id}").status_code == 404
+            assert client.get(f"/api/student/{student_id}/projects").json()["items"] == []
 
 
 if __name__ == "__main__":
